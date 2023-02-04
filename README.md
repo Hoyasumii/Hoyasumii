@@ -13,6 +13,5 @@
 ![](https://github-readme-stats.vercel.app/api/top-langs/?username=Hoyasumii&theme=react&hide_border=true&include_all_commits=false&count_private=false&layout=compact)
 
 ---
-[![](https://visitcount.itsvg.in/api?id=Hoyasumii&icon=2&color=12)](https://visitcount.itsvg.in)
 
 <!-- Proudly created with GPRM ( https://gprm.itsvg.in ) -->
