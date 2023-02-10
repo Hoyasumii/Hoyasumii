@@ -1,6 +1,6 @@
 
 <div align="center">
-    <span style="font-weight: bold; font-size: 2em;">Olá, meu nome é Alan!</span>
+    <h1>Olá, meu nome é Alan!</h1>
 </div>
 
 <br>
