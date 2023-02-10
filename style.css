@@ -51,6 +51,7 @@
     border: 2px solid #38bdf8;
     background-color: #38bdf8;
     border-radius: 50%;
+    box-shadow: 1px 1px 5px #141414;
 }
 
 .card:hover {
@@ -65,16 +66,18 @@
 }
 
 .link-title {
+    position: absolute;
+    left: 0px;
+    bottom: -5vh;
     filter: opacity(0);
     transition: 0.3s filter;
     text-align: center;
-    /* border: 1px solid #fff; */
-    box-shadow: 1px 1px 5px #000;
-    background-color: #181818;
-    padding: 10px;    
+    box-shadow: 1px 1px 5px #141414;
+    color: #E7F6F2;
+    background-color: #38bdf8;
+    padding: 5px;    
     border-radius: 10px;
-    /* position: absolute; */
-    /* margin-left: 15px; */
+    font-weight: bold;
 }
 
 .link-image:hover + .link-title {
