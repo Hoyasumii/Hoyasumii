@@ -85,7 +85,7 @@
 }
 
 .link-image:active + .link-title {
-    filter: opacity(0)
+    filter: opacity(0);
 }
 
 @media (orientation: portrait) {
