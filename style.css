@@ -84,10 +84,13 @@
     filter: opacity(1);
 }
 
+<<<<<<< HEAD
 .link-image:active + .link-title {
     filter: opacity(0);
 }
 
+=======
+>>>>>>> origin
 @media (orientation: portrait) {
     #main-content h1 {
         font-size: 2em;
@@ -96,7 +99,4 @@
     #main-content p {
         font-size: 1em;
     }
-
-
-
 }
