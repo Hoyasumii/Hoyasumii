@@ -83,3 +83,16 @@
 .link-image:hover + .link-title {
     filter: opacity(1);
 }
+
+@media (orientation: portrait) {
+    #main-content h1 {
+        font-size: 2em;
+    }
+
+    #main-content p {
+        font-size: 1em;
+    }
+
+    
+
+}
