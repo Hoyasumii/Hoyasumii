@@ -6,8 +6,8 @@
 <br>
 
 - Eu sou um estudante de **Ciência da Computação**, que atualmente se encontra no **5º período**.
-- Atualmente, estou estudando **JavaScript** para que eu consiga dar continuidade ao meu aprendizado em **C#**, sendo mais específico, em **ASP.NET MVC**.
-- Além do **JavaScript**, eu também estou interessado em aprender **Docker**.
+- Atualmente, estou estudando **JavaScript**, pois além de ser muito requisitado no mercado de trabalho, ele também é a base para muitas aplicações.
+- Além do **JavaScript**, eu também estou interessado em aprender **C**, **C++** e o **kernel do linux**.
 
 
 <div align="center" style="margin: 0px;">
