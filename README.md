@@ -6,8 +6,7 @@
 <br>
 
 - Eu sou um estudante de **Ciência da Computação**, que atualmente se encontra no **5º período**.
-- Atualmente, estou estudando **JavaScript**, pois além de ser muito requisitado no mercado de trabalho, ele também é a base para muitas aplicações.
-- Além do **JavaScript**, eu também estou interessado em aprender **C**, **C++** e o **kernel do linux**.
+- Atualmente, estou estudando **JavaScript**, pois além de ser muito requisitado no mercado de trabalho, ele irá servir para eu poder dar continuidade com o meu aprendizado na plataforma **.NET**.
 
 <div align="center" style="margin: 0px;">
     <img src="https://github-readme-streak-stats.herokuapp.com/?user=Hoyasumii&theme=dark&hide_border=true" width="49%" height="195px">
@@ -31,7 +30,13 @@ Web:
 <img src="https://img.shields.io/badge/html5-%23E34F26.svg?style=flat&logo=html5&logoColor=white">
 <img src="https://img.shields.io/badge/css3-%231572B6.svg?style=flat&logo=css3&logoColor=white">
 <img src="https://img.shields.io/badge/javascript-%23323330.svg?style=flat&logo=javascript&logoColor=%23F7DF1E">
+<img src="https://img.shields.io/badge/SASS-hotpink.svg?style=flat&logo=SASS&logoColor=white">
 <img src="https://img.shields.io/badge/bootstrap-%23563D7C.svg?style=flat&logo=bootstrap&logoColor=white">
+
+Ferramentas Web:
+<img src="https://img.shields.io/badge/webpack-%238DD6F9.svg?style=flat&logo=webpack&logoColor=black">
+<img src="https://img.shields.io/badge/Babel-F9DC3e?style=flat&logo=babel&logoColor=black">
+
 
 Back-End:
 <img src="https://img.shields.io/badge/c%23-%23239120.svg?style=flat&logo=c-sharp&logoColor=white">
