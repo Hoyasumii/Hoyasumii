@@ -6,11 +6,12 @@
 <br>
 
 - 👨‍💻Eu sou um estudante de **Ciência da Computação**, que se encontra no **5º período**.
-- 🌱 Atualmente, eu estou começando a estudar o **React JS**.
+- 🌱 Atualmente, eu estou começando a estudar o **Next.js**.
 
 <div align="center" style="margin: 0px;">
     <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg" height="40"/>
     <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg" height="40"/>
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" height="40"/>
     <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg" height="40"/>
     <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg" height="40"/>
     <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/sass/sass-original.svg" height="40"/>
