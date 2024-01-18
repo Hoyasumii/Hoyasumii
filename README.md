@@ -1,10 +1,7 @@
 
 <div align="center">
-    <h2>Olá, meu nome é Alan!</h2>
-    <p>Desenvolvedor Júnior na <strong>The Public House</strong></p>
+    <h1>Olá, meu nome é Alan!</h1>
 </div>
-
----
 
 <br>
 
@@ -30,7 +27,7 @@
     <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linux/linux-original.svg" height="40" />
 </div> 
 
----
+##
 
 <div align="center" style="margin: 0px;">
     <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=Hoyasumii&theme=dark&hide_border=true&include_all_commits=false&count_private=false&layout=compact" width="40%">
