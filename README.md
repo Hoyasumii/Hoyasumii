@@ -19,17 +19,6 @@
 
 ##
 
-<div align="center" style="margin: 0px;">
-    <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=Hoyasumii&theme=dark&hide_border=true&include_all_commits=false&count_private=false&layout=compact" width="40%">
-    
-<a href="https://linkedin.com/in/AlanReisAnjos/"><img src="https://img.shields.io/badge/LinkedIn-%230077B5.svg?style=for-the-badge&logo=linkedin&logoColor=white"></a>
-<a href="mailto:alanreisanjo@gmail.com"><img src="https://img.shields.io/badge/Gmail-%23E34F26.svg?style=for-the-badge&logo=gmail&logoColor=white"></a>
-<a href="https://instagram.com/_eu.alan"><img src="https://img.shields.io/badge/Instagram-%23E4405F.svg?style=for-the-badge&logo=Instagram&logoColor=white"></a>
-
-</div>
-
-##
-
 ### Recomendações
 - [ **Guia DEFINITIVO de Aprendendo a Aprender | A maior BRONCA da sua vida**, *Fábio Akita* ](https://www.youtube.com/watch?v=oUPaJxk6TZ0&ab_channel=FabioAkita)
 - Curso ***Javascript Fullstack*** - OneBitCode
