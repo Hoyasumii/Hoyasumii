@@ -10,6 +10,6 @@
 - 😎 Além disso, eu tenho hábito de escrever artigos no [**LinkedIn**](https://www.linkedin.com/in/AlanReisAnjos/) sobre programação.
 
 <div align="center" style="margin: 0px;">
-    <img src="https://skillicons.dev/icons?i=ts,bun,elysia,nodejs,express,react,next,mongo,mysql,python,dotnet,linux" />
+    <img src="https://skillicons.dev/icons?i=ts,bun,elysia,nodejs,express,react,next,mongo,mysql,python,dotnet,linux&perline=6" />
 </div>
 
