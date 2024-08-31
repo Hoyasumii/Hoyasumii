@@ -8,6 +8,6 @@
 
 #
 
-look at this fucked up fish
+look at this fish.
 
 ![](./fucked-fish.jpg)
