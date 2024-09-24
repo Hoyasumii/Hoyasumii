@@ -7,7 +7,13 @@
 
 <br/>
 
-![](https://skillicons.dev/icons?i=ts,bun,elysia,nodejs,express,react,next,sass,tailwind,mongo,python)
+![](https://skillicons.dev/icons?i=ts,jest,bun,elysia,nodejs,express,react,next,sass,tailwind,mongo,python)
+
+#
+
+### Currently Learning
+
+![](https://skillicons.dev/icons?i=docker,terraform,githubactions,kubernetes)
 
 #
 
