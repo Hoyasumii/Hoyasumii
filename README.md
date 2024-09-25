@@ -13,7 +13,7 @@
 
 ### Currently Learning
 
-![](https://skillicons.dev/icons?i=docker,terraform,githubactions,kubernetes)
+![](https://skillicons.dev/icons?i=docker,terraform,githubactions,kubernetes,aws)
 
 #
 
