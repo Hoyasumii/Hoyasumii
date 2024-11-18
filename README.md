@@ -7,7 +7,7 @@
 
 <br/>
 
-![](https://skillicons.dev/icons?i=ts,vitest,express,nestjs,prisma,bun,elysia,react,next,sass,tailwind,mysql,mongo,python,docker)
+![](https://skillicons.dev/icons?i=nodejs,ts,express,nestjs,prisma,vitest,bun,elysia,react,next,sass,tailwind,mysql,mongo,python,docker)
 
 #
 
