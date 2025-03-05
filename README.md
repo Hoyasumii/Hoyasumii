@@ -17,4 +17,4 @@
 
 #
 
-![](https://my-skills-api-production.up.railway.app/?icons=fastify)
+![](https://my-skills-api-production.up.railway.app/?icons=fastify,hono)
