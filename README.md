@@ -17,6 +17,4 @@
 
 #
 
-look at this fish.
-
-![](./fucked-fish.jpg)
+![](https://my-skills-api-production.up.railway.app/?icons=fastify)
