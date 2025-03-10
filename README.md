@@ -17,4 +17,4 @@
 
 #
 
-![](https://my-skills-client-cyan.vercel.app/api?icons=all&size=64)
+![](https://my-skills-client-cyan.vercel.app/api?icons=all&spacing=10)
