@@ -14,7 +14,3 @@
 ### Currently Learning
 
 ![](https://skillicons.dev/icons?i=terraform,githubactions,kubernetes,aws)
-
-#
-
-![](https://my-skills-client-cyan.vercel.app/api?icons=all&spacing=10)
