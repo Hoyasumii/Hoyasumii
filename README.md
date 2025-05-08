@@ -8,5 +8,5 @@
 
 <br/>
 
-![](https://skillicons.dev/icons?i=nodejs,ts,express,nestjs,prisma,vitest,bun,elysia,react,next,sass,tailwind,postgresql,mongo,python,docker)
+![](https://skillicons.dev/icons?i=nodejs,ts,nestjs,prisma,redis,vitest,express,bun,elysia,react,next,sass,tailwind,postgresql,mongo,python,docker)
 
