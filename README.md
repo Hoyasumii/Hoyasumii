@@ -1,4 +1,4 @@
-
+## ![](/cover.png)
 
 🤓☝🏻 I'm a **Fullstack Developer**, focused on Software Engineering and building scalable products.
 
