@@ -2,20 +2,21 @@
 
 🤓☝🏻 I'm a **Fullstack Developer**, focused on Software Engineering and building scalable products.
 
-🧠🤖 I'm constantly seeking to improve my skills and delve deeper into concepts such as **Clean Code**, **Design Patterns (GoF)** and **Domain-Driven Design**.
-> ![](https://skillicons.dev/icons?i=ts,next,vue,react,tailwind,sass,figma,photoshop,premiere)
->
-> ![](https://skillicons.dev/icons?i=nodejs,ts,nestjs,next,jest,vitest,prisma,express,bun,elysia)
->
+🧠🤖 **My Stack**:
+- **Basics**
+> ![](https://skillicons.dev/icons?i=ts,tailwind,sass,figma,postgresql,supabase,mongo,aws,docker,githubactions)
+
+- **React** 
+> ![](https://skillicons.dev/icons?i=react,next)
+
+- **Node.js**
+> ![](https://skillicons.dev/icons?i=nodejs,express,nestjs,jest,vitest,prisma,bun,elysia)
+
+- **.NET**
 > ![](https://skillicons.dev/icons?i=cs,dotnet)
->
-> ![](https://skillicons.dev/icons?i=python,graphql,supabase,postgresql,mongo,aws,docker,githubactions)
 
+- **Others**
+> ![](https://skillicons.dev/icons?i=python,premiere,photoshop)
 
-
-
-
-
-
-
-
+📚🧑🏻‍💻 Studying
+> ![](https://skillicons.dev/icons?i=vue,nuxt,pinia,graphql)
