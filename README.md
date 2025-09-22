@@ -13,5 +13,6 @@
 > ![](https://skillicons.dev/icons?i=cs,dotnet)
 - **Others**
 > ![](https://skillicons.dev/icons?i=python,premiere,photoshop)
-📚🧑🏻‍💻 Studying
+- 📚🧑🏻‍💻 Studying
 > ![](https://skillicons.dev/icons?i=vue,nuxt,pinia,graphql)
+
