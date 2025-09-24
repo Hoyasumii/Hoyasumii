@@ -7,7 +7,7 @@
 > ![](https://skillicons.dev/icons?i=ts,tailwind,sass,figma,postgresql,supabase,mongo,aws,docker,githubactions)
 - **React** 
 > ![](https://skillicons.dev/icons?i=react,next)
-> - **Vue.js**
+- **Vue.js**
 > ![](https://skillicons.dev/icons?i=vue,pinia)
 - **Node.js**
 > ![](https://skillicons.dev/icons?i=nodejs,express,nestjs,jest,vitest,prisma,bun,elysia)
@@ -18,6 +18,7 @@
 
 📚🧑🏻‍💻 **Studying**
 > ![](https://skillicons.dev/icons?i=nuxt,graphql)
+
 
 
 
