@@ -17,7 +17,8 @@
 > ![](https://skillicons.dev/icons?i=python,premiere,photoshop)
 
 📚🧑🏻‍💻 **Studying**
-> ![](https://skillicons.dev/icons?i=nuxt,graphql)
+> ![](https://skillicons.dev/icons?i=ruby,rails,nuxt,graphql)
+
 
 
 
