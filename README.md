@@ -14,7 +14,7 @@
 - **.NET**
 > ![](https://skillicons.dev/icons?i=cs,dotnet)
 - **Others**
-> ![](https://skillicons.dev/icons?i=python,premiere,photoshop)
+> ![](https://skillicons.dev/icons?i=lit,python,premiere,photoshop)
 
 📚🧑🏻‍💻 **Studying**
 > ![](https://skillicons.dev/icons?i=ruby,rails,nuxt,graphql)
