@@ -14,10 +14,10 @@
 - **.NET**
 > ![](https://skillicons.dev/icons?i=cs,dotnet)
 - **Others**
-> ![](https://skillicons.dev/icons?i=lit,python,premiere,photoshop)
+> ![](https://skillicons.dev/icons?i=lit,python,premiere,photoshop,ruby,rails,php,laravel)
 
 📚🧑🏻‍💻 **Studying**
-> ![](https://skillicons.dev/icons?i=ruby,rails,nuxt,graphql)
+> ![](https://skillicons.dev/icons?i=nuxt,graphql)
 
 
 
