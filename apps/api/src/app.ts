@@ -6,12 +6,14 @@ import type { Deps } from "./container";
 import type { Env } from "./env";
 import { HttpError } from "./lib/errors";
 import { adminRoutes } from "./routes/admin";
+import { mcpRoutes } from "./routes/mcp";
 import { publicRoutes } from "./routes/public";
-import type { AdminUser } from "./services/auth";
+import type { AdminService } from "./services/admin";
+import type { Principal } from "./services/auth";
 
 export type AppEnv = {
 	Bindings: Env;
-	Variables: { deps: Deps; user: AdminUser };
+	Variables: { deps: Deps; user: Principal; admin: AdminService };
 };
 
 export function createApp(resolveDeps: (env: Env) => Deps) {
@@ -37,6 +39,7 @@ export function createApp(resolveDeps: (env: Env) => Deps) {
 	app.get("/", (c) => c.json({ data: { name: "portfolio-api", status: "ok" } }));
 	app.route("/", publicRoutes);
 	app.route("/admin", adminRoutes);
+	app.route("/mcp", mcpRoutes);
 
 	app.notFound((c) => c.json({ error: { code: "not_found", message: "Route not found" } }, 404));
 

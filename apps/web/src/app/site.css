@@ -611,7 +611,7 @@ a.lang-switch__item:hover {
 	aspect-ratio: 16 / 9;
 }
 
-.feature:hover .cover--feature img {
+:where(.feature:hover) .cover--feature img {
 	transform: scale(1.015);
 }
 

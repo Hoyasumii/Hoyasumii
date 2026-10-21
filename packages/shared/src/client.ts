@@ -1,9 +1,12 @@
 import type {
+	ApiKey,
+	ApiKeyCreate,
 	Article,
 	ArticleSummary,
 	CollectionInput,
 	CollectionName,
 	Content,
+	CreatedApiKey,
 	Entry,
 	Settings,
 	SettingsKey,
@@ -92,6 +95,11 @@ export function createPortfolioClient({ baseUrl, getToken, fetch: fetcher = fetc
 			request<{ id: string }>(`/admin/collections/${name}/${encodeURIComponent(id)}`, { method: "DELETE" }, true),
 		reorder: <N extends CollectionName>(name: N, ids: string[]) =>
 			request<Entry<CollectionInput<N>>[]>(`/admin/collections/${name}/order`, json("PUT", { ids }), true),
+
+		listApiKeys: () => request<ApiKey[]>("/admin/api-keys", {}, true),
+		createApiKey: (input: ApiKeyCreate) => request<CreatedApiKey>("/admin/api-keys", json("POST", input), true),
+		revokeApiKey: (id: string) =>
+			request<ApiKey>(`/admin/api-keys/${encodeURIComponent(id)}`, { method: "DELETE" }, true),
 
 		/** Rebuilds the website now (saving already does this). */
 		publish: () => request<{ queued: boolean }>("/admin/publish", { method: "POST" }, true),

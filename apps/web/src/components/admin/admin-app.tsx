@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ApiKeysSection } from "./api-keys-section";
 import { AdminProvider, errorMessage, useAdmin } from "./context";
 import {
 	AppearanceSection,
@@ -23,6 +24,7 @@ const SECTIONS = {
 	links: { label: "Links", render: () => <LinksSection /> },
 	appearance: { label: "Aparência", render: () => <AppearanceSection /> },
 	seo: { label: "SEO", render: () => <SeoSection /> },
+	apiKeys: { label: "Chaves de API", render: () => <ApiKeysSection /> },
 } as const;
 
 type SectionKey = keyof typeof SECTIONS;

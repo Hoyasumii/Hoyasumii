@@ -1,6 +1,7 @@
 import { createApp } from "../src/app";
 import { MemoryCache } from "../src/cache/memory";
 import { assemble } from "../src/container";
+import { MemoryApiKeyRepository } from "../src/repositories/api-key-repository";
 import { MemoryContentRepository } from "../src/repositories/memory";
 import { StaticTokenVerifier } from "../src/services/auth";
 import { NoopPublisher } from "../src/services/publisher";
@@ -16,6 +17,7 @@ export function setup() {
 	const deps = assemble(
 		{
 			repository,
+			apiKeyRepository: new MemoryApiKeyRepository(),
 			cache,
 			publisher,
 			storage: new MemoryMediaStorage(),

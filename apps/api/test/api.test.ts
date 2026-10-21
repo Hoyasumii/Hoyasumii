@@ -164,10 +164,10 @@ describe("collections", () => {
 
 		await flush();
 		expect(publisher.reasons).toEqual([
-			"projects entry created",
-			"projects entry updated",
-			"projects reordered",
-			"projects entry deleted",
+			"projects entry created by Owner@Example.com",
+			"projects entry updated by Owner@Example.com",
+			"projects reordered by Owner@Example.com",
+			"projects entry deleted by Owner@Example.com",
 		]);
 	});
 });
