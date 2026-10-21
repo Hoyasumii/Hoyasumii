@@ -19,7 +19,7 @@ const collection = z
 	.describe("projects, experience, stack (icon groups), links or articles");
 const settingsKey = z
 	.enum(settingsKeys as [SettingsKey, ...SettingsKey[]])
-	.describe("profile, seo or appearance (icon tint)");
+	.describe("profile, seo or appearance (accent color per theme and icon tint)");
 const fields = z
 	.record(z.string(), z.unknown())
 	.describe("Entry fields, following the schema returned by describe_schema");
@@ -32,6 +32,8 @@ Content:
 - collections (ordered lists): projects, experience, stack, links, articles.
 Texts shown on the site are bilingual objects: { "pt": "...", "en": "..." }. Always fill both.
 Stack icons and project stacks use Skill Icons names (ts, react, postgres, ...).
+The accent color (appearance.accent) has a light and a dark variant, as 6 hex digits without "#";
+keep each readable on its theme's background (#ebe9e3 light, #0e0e0d dark).
 Articles are Markdown; unpublished articles stay as drafts.
 
 Before creating or changing something, call describe_schema for its exact fields. Use update_entry and

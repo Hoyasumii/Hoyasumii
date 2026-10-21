@@ -1,11 +1,12 @@
 import { resolveIconName } from "@hoyasumii/skill-icons";
+import type { Appearance } from "@portfolio/shared";
 import { iconUrl } from "@/lib/icons";
 import { tintFor } from "@/lib/theme";
 
 type Props = {
 	name: string;
-	/** The appearance setting: "accent", a hex color, or "" for the original colors. */
-	tint: string;
+	/** The site's appearance: icon tint ("accent", a hex color or "") and accent colors. */
+	appearance: Appearance;
 	size?: number;
 };
 
@@ -13,10 +14,10 @@ type Props = {
  * A Skill Icon that follows the site's theme. Both theme variants are rendered, each tinted for
  * its own theme, and CSS shows the one matching `data-theme`; hovering reveals the original colors.
  */
-export function TechIcon({ name, tint, size = 40 }: Props) {
+export function TechIcon({ name, appearance, size = 40 }: Props) {
 	const canonical = resolveIconName(name);
 	if (!canonical) return null;
-	const tinted = Boolean(tint);
+	const tinted = Boolean(appearance.iconTint);
 
 	return (
 		<span
@@ -27,7 +28,7 @@ export function TechIcon({ name, tint, size = 40 }: Props) {
 			title={canonical}
 		>
 			{(["dark", "light"] as const).map((theme) => {
-				const themeTint = tintFor(tint, theme);
+				const themeTint = tintFor(appearance, theme);
 				return (
 					<span key={theme} className={`tech-icon__theme tech-icon__theme--${theme}`}>
 						{themeTint ? (

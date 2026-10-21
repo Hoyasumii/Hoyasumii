@@ -129,15 +129,15 @@ function PublishButton() {
 	);
 }
 
-/** Loads the icon tint once, so every icon picker previews the site's colors. */
-function TintLoader() {
-	const { api, setTint } = useAdmin();
+/** Loads the appearance once, so previews and the panel itself use the site's colors. */
+function AppearanceLoader() {
+	const { api, setAppearance } = useAdmin();
 	useEffect(() => {
 		api
 			.getSettings("appearance")
-			.then((value) => setTint(value.iconTint))
+			.then((value) => setAppearance(value))
 			.catch(() => {});
-	}, [api, setTint]);
+	}, [api, setAppearance]);
 	return null;
 }
 
@@ -147,7 +147,7 @@ function Shell({ email, onSignOut }: { email: string; onSignOut: () => Promise<v
 
 	return (
 		<div className="admin">
-			<TintLoader />
+			<AppearanceLoader />
 			<aside className="sidebar">
 				<p className="sidebar__brand">
 					Painel<span>{devMode ? "modo local" : email}</span>

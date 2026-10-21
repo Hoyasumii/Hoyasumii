@@ -1,15 +1,14 @@
+import { type Appearance, defaultAccent } from "@portfolio/shared";
+
 export type Theme = "light" | "dark";
 
-/** The accent color of each theme, without "#". Keep in sync with --accent in site.css. */
-export const ACCENT: Record<Theme, string> = {
-	light: "d4441c",
-	dark: "ff6a3d",
-};
-
-/** Resolves the appearance setting to the tint for one theme (undefined keeps original colors). */
-export function tintFor(setting: string, theme: Theme): string | undefined {
-	if (setting === "accent") return ACCENT[theme];
-	return setting || undefined;
+/**
+ * Resolves the icon tint for one theme: "accent" follows the site's accent color for that theme,
+ * a hex color tints every icon the same, and "" keeps their original colors (undefined).
+ */
+export function tintFor(appearance: Appearance, theme: Theme): string | undefined {
+	if (appearance.iconTint === "accent") return (appearance.accent ?? defaultAccent)[theme];
+	return appearance.iconTint || undefined;
 }
 
 /** Runs before paint so the saved theme never flashes. */

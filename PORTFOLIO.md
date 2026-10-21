@@ -24,7 +24,7 @@ supabase/        Migrations (Postgres, RLS, bucket de mídia)
 
 - O site é **estático**. A cada alteração salva no painel, a API invalida o cache e dispara `content-updated` no GitHub; o workflow `Deploy` gera o site com o conteúdo novo e publica no Pages. Builds seguidos se cancelam, então sempre sai o mais recente.
 - **Artigos** podem ser escritos no painel (Markdown com prévia) ou vir do dev.to. Os dois aparecem juntos e são renderizados no próprio site. Um build diário traz os novos do dev.to.
-- **Ícones** vêm do [Skill Icons](https://skill-icons.alanreisanjo.workers.dev). Por padrão eles são tingidos com a cor de destaque de cada tema e mostram as cores originais no hover (configurável em _Painel → Aparência_).
+- **Ícones** vêm do [Skill Icons](https://skill-icons.alanreisanjo.workers.dev). Por padrão eles são tingidos com a cor de destaque de cada tema e mostram as cores originais no hover (configurável em _Painel → Aparência_). A cor de destaque também é escolhida lá, com uma variante para cada tema e aviso de contraste.
 - O cache é opcional: se o Upstash cair, a API lê direto do Supabase.
 
 ## Chaves de API e servidor MCP

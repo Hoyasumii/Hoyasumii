@@ -1,4 +1,4 @@
-import type { ArticleSummary, Content, Locale, Project } from "@portfolio/shared";
+import type { Appearance, ArticleSummary, Content, Locale, Project } from "@portfolio/shared";
 import { notFound } from "next/navigation";
 import { ArticleList } from "@/components/site/article-list";
 import { ProjectCover } from "@/components/site/project-cover";
@@ -52,13 +52,13 @@ function FeaturedProject({
 	project,
 	index,
 	locale,
-	tint,
+	appearance,
 	d,
 }: {
 	project: Project;
 	index: number;
 	locale: Locale;
-	tint: string;
+	appearance: Appearance;
 	d: Dictionary;
 }) {
 	return (
@@ -84,7 +84,7 @@ function FeaturedProject({
 				{project.stack.length > 0 ? (
 					<div className="icon-row">
 						{project.stack.map((name) => (
-							<TechIcon key={name} name={name} tint={tint} size={32} />
+							<TechIcon key={name} name={name} appearance={appearance} size={32} />
 						))}
 					</div>
 				) : null}
@@ -119,13 +119,13 @@ function ProjectTable({
 	projects,
 	offset,
 	locale,
-	tint,
+	appearance,
 	d,
 }: {
 	projects: Project[];
 	offset: number;
 	locale: Locale;
-	tint: string;
+	appearance: Appearance;
 	d: Dictionary;
 }) {
 	return (
@@ -154,7 +154,7 @@ function ProjectTable({
 							{project.stack.length > 0 ? (
 								<div className="icon-row">
 									{project.stack.map((name) => (
-										<TechIcon key={name} name={name} tint={tint} size={28} />
+										<TechIcon key={name} name={name} appearance={appearance} size={28} />
 									))}
 								</div>
 							) : null}
@@ -186,7 +186,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 	const [content, articles] = await Promise.all([getContent(), getArticles()]);
 	const d = dict(locale);
 	const { profile } = content;
-	const tint = content.appearance.iconTint;
+	const { appearance } = content;
 	const featured = content.projects.filter((p) => p.featured);
 	const others = content.projects.filter((p) => !p.featured);
 	const nav = sections(content, articles, d);
@@ -227,12 +227,25 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
 				<Section id="work" number={numberOf("work")} label={d.selectedWork}>
 					{featured.map((project, i) => (
-						<FeaturedProject key={project.id} project={project} index={i + 1} locale={locale} tint={tint} d={d} />
+						<FeaturedProject
+							key={project.id}
+							project={project}
+							index={i + 1}
+							locale={locale}
+							appearance={appearance}
+							d={d}
+						/>
 					))}
 					{others.length > 0 ? (
 						<>
 							<h3 className="subhead">{d.otherWork}</h3>
-							<ProjectTable projects={others} offset={featured.length + 1} locale={locale} tint={tint} d={d} />
+							<ProjectTable
+								projects={others}
+								offset={featured.length + 1}
+								locale={locale}
+								appearance={appearance}
+								d={d}
+							/>
 						</>
 					) : null}
 				</Section>
@@ -259,14 +272,14 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
 				{content.stack.length > 0 ? (
 					<Section id="stack" number={numberOf("stack")} label={d.stack}>
-						{tint ? <p className="hint">{d.hoverHint}</p> : null}
+						{appearance.iconTint ? <p className="hint">{d.hoverHint}</p> : null}
 						<dl className="stack">
 							{content.stack.map((group) => (
 								<div key={group.id} className="stack__group">
 									<dt>{t(group.title, locale)}</dt>
 									<dd className="icon-row">
 										{group.icons.map((name) => (
-											<TechIcon key={name} name={name} tint={tint} size={40} />
+											<TechIcon key={name} name={name} appearance={appearance} size={40} />
 										))}
 									</dd>
 								</div>

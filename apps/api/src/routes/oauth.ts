@@ -5,6 +5,7 @@ import {
 	CimdFetchError,
 	type ConsentDescription,
 } from "@cloudflare/workers-oauth-provider";
+import { type Appearance, defaultAccent, inkOn } from "@portfolio/shared";
 import { type Context, Hono } from "hono";
 import type { AppEnv } from "../app";
 import { hashKey } from "../services/api-keys";
@@ -19,7 +20,13 @@ const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => `&#${c
  * `formAction` lists where the form may lead: the page itself and, after approving, the client's
  * redirect URI. Browsers apply form-action to the redirect that follows the post too.
  */
-function page(title: string, body: string, status = 200, formAction: string[] = []): Response {
+function page(
+	title: string,
+	body: string,
+	status = 200,
+	formAction: string[] = [],
+	accent: Appearance["accent"] = defaultAccent,
+): Response {
 	const headers = new Headers();
 	headers.set("Content-Type", "text/html; charset=utf-8");
 	headers.set("Cache-Control", "no-store");
@@ -41,8 +48,8 @@ function page(title: string, body: string, status = 200, formAction: string[] = 
 <meta name="robots" content="noindex">
 <title>${escapeHtml(title)}</title>
 <style>
-	:root { --paper: #ebe9e3; --paper-2: #e1ded6; --ink: #141413; --muted: #75736c; --rule: rgb(20 20 19 / .16); --accent: #d4441c; color-scheme: light dark; }
-	@media (prefers-color-scheme: dark) { :root { --paper: #0e0e0d; --paper-2: #191917; --ink: #ecebe5; --muted: #87857d; --rule: rgb(236 235 229 / .14); --accent: #ff6a3d; } }
+	:root { --paper: #ebe9e3; --paper-2: #e1ded6; --ink: #141413; --muted: #75736c; --rule: rgb(20 20 19 / .16); --accent: #${accent.light}; --accent-ink: #${inkOn(accent.light)}; color-scheme: light dark; }
+	@media (prefers-color-scheme: dark) { :root { --paper: #0e0e0d; --paper-2: #191917; --ink: #ecebe5; --muted: #87857d; --rule: rgb(236 235 229 / .14); --accent: #${accent.dark}; --accent-ink: #${inkOn(accent.dark)}; } }
 	* { box-sizing: border-box; }
 	body { margin: 0; min-height: 100svh; display: grid; place-items: center; padding: 16px; background: var(--paper); color: var(--ink); font: 16px/1.5 system-ui, sans-serif; }
 	main { width: min(100%, 440px); display: grid; gap: 20px; }
@@ -63,7 +70,7 @@ function page(title: string, body: string, status = 200, formAction: string[] = 
 	.choice { display: flex; gap: 10px; align-items: baseline; }
 	.actions { display: flex; gap: 8px; }
 	button { padding: 11px 16px; border: 1px solid var(--ink); background: none; color: var(--ink); cursor: pointer; }
-	button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+	button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 </style>
 <main>${body}</main>
 </html>`,
@@ -150,12 +157,19 @@ function redirectTarget(redirectUri: string): string[] {
 	}
 }
 
-function renderConsent(pending: PendingConsent, handle: string, failed = false): Response {
+async function renderConsent(c: Context<AppEnv>, pending: PendingConsent, handle: string, failed = false) {
+	// The site's accent color; the default one if the content can't be read right now.
+	const accent = await c
+		.get("deps")
+		.content.getPublic()
+		.then((content) => content.appearance.accent)
+		.catch(() => defaultAccent);
 	return page(
 		`Autorizar ${pending.details.clientName || "aplicativo"}`,
 		consentPage(pending.details, handle, failed),
 		failed ? 401 : 200,
 		redirectTarget(pending.request.redirectUri),
+		accent,
 	);
 }
 
@@ -179,7 +193,7 @@ export const oauthRoutes = new Hono<AppEnv>()
 			await kv.put(consentKey(await hashKey(handle)), JSON.stringify(pending), {
 				expirationTtl: CONSENT_TTL_SECONDS,
 			});
-			return renderConsent(pending, handle);
+			return renderConsent(c, pending, handle);
 		} catch (error) {
 			return handled(error);
 		}
@@ -208,7 +222,7 @@ export const oauthRoutes = new Hono<AppEnv>()
 					return errorPage("Muitas tentativas. Volte ao aplicativo e comece de novo.", 429);
 				}
 				await kv.put(key, JSON.stringify(pending), { expirationTtl: CONSENT_TTL_SECONDS });
-				return renderConsent(pending, handle, true);
+				return renderConsent(c, pending, handle, true);
 			}
 
 			await kv.delete(key);
