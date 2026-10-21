@@ -3,6 +3,7 @@ import { createApp } from "./app";
 import { depsFromEnv } from "./container";
 import type { Env } from "./env";
 import { authenticateToken } from "./lib/auth";
+import { publicOrigin } from "./lib/public-url";
 import { SCOPES } from "./routes/oauth";
 
 const app = createApp(depsFromEnv);
@@ -44,7 +45,7 @@ let provider: OAuthProvider<Env> | undefined;
 
 export default {
 	fetch(request, env, ctx) {
-		provider ??= providerFor((env.PUBLIC_API_URL ?? new URL(request.url).origin).replace(/\/$/, ""));
+		provider ??= providerFor(publicOrigin(env, request.url));
 		return provider.fetch(request, env, ctx);
 	},
 } satisfies ExportedHandler<Env>;

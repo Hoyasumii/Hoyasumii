@@ -4,7 +4,6 @@ import type { ApiKey, ApiKeyScope, CreatedApiKey, OAuthConnection } from "@portf
 import { useCallback, useEffect, useState } from "react";
 import { errorMessage, useAdmin } from "./context";
 import { TextField } from "./fields";
-import { apiUrl } from "./session";
 
 const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
 const when = (value: string | null) => (value ? dateTime.format(new Date(value)) : "nunca");
@@ -27,8 +26,15 @@ function CopyButton({ text, label = "Copiar" }: { text: string; label?: string }
 }
 
 /** Shown once, right after a key is created: the only moment the key can be copied. */
-function NewKey({ created, onClose }: { created: CreatedApiKey; onClose: () => void }) {
-	const endpoint = `${apiUrl.replace(/\/$/, "")}/mcp`;
+function NewKey({
+	created,
+	endpoint,
+	onClose,
+}: {
+	created: CreatedApiKey;
+	endpoint: string | null;
+	onClose: () => void;
+}) {
 	const claudeCode = `claude mcp add --transport http portfolio ${endpoint} --header "Authorization: Bearer ${created.key}"`;
 	const json = JSON.stringify(
 		{ mcpServers: { portfolio: { type: "http", url: endpoint, headers: { Authorization: `Bearer ${created.key}` } } } },
@@ -45,17 +51,21 @@ function NewKey({ created, onClose }: { created: CreatedApiKey; onClose: () => v
 				<CopyButton text={created.key} />
 			</div>
 
-			<p className="field__label">Claude Code</p>
-			<div className="new-key__value">
-				<code>{claudeCode}</code>
-				<CopyButton text={claudeCode} />
-			</div>
+			{endpoint ? (
+				<>
+					<p className="field__label">Claude Code</p>
+					<div className="new-key__value">
+						<code>{claudeCode}</code>
+						<CopyButton text={claudeCode} />
+					</div>
 
-			<p className="field__label">Outros clientes MCP (Cursor, Codex, Claude Desktop…)</p>
-			<div className="new-key__value new-key__value--block">
-				<pre>{json}</pre>
-				<CopyButton text={json} />
-			</div>
+					<p className="field__label">Outros clientes MCP (Cursor, Codex, Claude Desktop…)</p>
+					<div className="new-key__value new-key__value--block">
+						<pre>{json}</pre>
+						<CopyButton text={json} />
+					</div>
+				</>
+			) : null}
 
 			<button type="button" className="button button--ghost" onClick={onClose}>
 				Já copiei, fechar
@@ -92,13 +102,11 @@ function Connections() {
 		}
 	}
 
-	const endpoint = `${apiUrl.replace(/\/$/, "")}/mcp`;
-
 	return (
 		<>
 			<h2 className="field__label keys__heading">Apps conectados (OAuth)</h2>
 			<p className="field__hint">
-				Para o claude.ai (web e app): Settings → Connectors → Add custom connector, com a URL <code>{endpoint}</code>.
+				Para o claude.ai (web e app): Settings → Connectors → Add custom connector, com a URL do servidor MCP acima.
 				Você autoriza numa página própria, com seu e-mail e senha.
 			</p>
 			{connections === null ? <p className="empty">Carregando…</p> : null}
@@ -132,6 +140,14 @@ export function ApiKeysSection() {
 	const [scope, setScope] = useState<ApiKeyScope>("write");
 	const [created, setCreated] = useState<CreatedApiKey | null>(null);
 	const [busy, setBusy] = useState(false);
+	const [endpoint, setEndpoint] = useState<string | null>(null);
+
+	useEffect(() => {
+		api
+			.getMcpServer()
+			.then((server) => setEndpoint(server.url))
+			.catch((error) => notify(errorMessage(error), "error"));
+	}, [api, notify]);
 
 	const load = useCallback(async () => {
 		try {
@@ -185,7 +201,17 @@ export function ApiKeysSection() {
 				</div>
 			</header>
 
-			{created ? <NewKey created={created} onClose={() => setCreated(null)} /> : null}
+			<h2 className="field__label">Servidor MCP</h2>
+			{endpoint ? (
+				<div className="new-key__value">
+					<code>{endpoint}</code>
+					<CopyButton text={endpoint} />
+				</div>
+			) : (
+				<p className="empty">Carregando…</p>
+			)}
+
+			{created ? <NewKey created={created} endpoint={endpoint} onClose={() => setCreated(null)} /> : null}
 
 			<form className="form" onSubmit={create}>
 				<div className="grid-2">

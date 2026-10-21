@@ -1,9 +1,10 @@
-import { apiKeyCreateSchema, type OAuthConnection, reorderSchema } from "@portfolio/shared";
+import { apiKeyCreateSchema, type McpServer, type OAuthConnection, reorderSchema } from "@portfolio/shared";
 import { type Context, Hono } from "hono";
 import type { ZodType, z } from "zod";
 import type { AppEnv } from "../app";
 import { requireAdmin, requireSession } from "../lib/auth";
 import { badRequest, notFound } from "../lib/errors";
+import { publicOrigin } from "../lib/public-url";
 import { assertCollection, assertSettingsKey } from "../services/admin";
 
 async function json(c: Context<AppEnv>): Promise<unknown> {
@@ -67,6 +68,8 @@ const connectionRoutes = new Hono<AppEnv>()
 export const adminRoutes = new Hono<AppEnv>()
 	.use(requireAdmin)
 	.get("/me", (c) => c.json({ data: c.get("user") }))
+	/** The MCP endpoint of this deploy, the same address the OAuth server announces as its resource. */
+	.get("/mcp", (c) => c.json({ data: { url: `${publicOrigin(c.env, c.req.url)}/mcp` } satisfies McpServer }))
 	.post("/publish", async (c) => {
 		await c.get("admin").publish();
 		return c.json({ data: { queued: true } }, 202);

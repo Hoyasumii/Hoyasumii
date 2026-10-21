@@ -322,3 +322,6 @@ export type OAuthConnection = {
 	redirectHost: string | null;
 	createdAt: string;
 };
+
+/** The MCP server of the deployed API. */
+export type McpServer = { url: string };
