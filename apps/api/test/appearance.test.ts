@@ -42,6 +42,14 @@ describe("appearance settings", () => {
 		});
 	});
 
+	it("ignores content cached in an older shape", async () => {
+		const { call, cache } = setup();
+		// What Upstash held across the deploy that added appearance.icons.
+		await cache.set("portfolio:content:v1", { appearance: { iconTint: "accent" } }, 3600);
+		const content = await data<Content>(await call("/content"));
+		expect(content.appearance.icons).toEqual(defaultIconStyles);
+	});
+
 	it("resolves the icon look per theme of the site", () => {
 		const appearance = {
 			accent: { light: "1f5fd1", dark: "6aa5ff" },

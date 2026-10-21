@@ -212,6 +212,22 @@ export const contentCollectionNames = collectionNames.filter(
 
 export type Content = Settings & Pick<Collections, ContentCollectionName> & { updatedAt: string | null };
 
+/**
+ * Version of the Content shape. Bump it whenever settings or collections change shape: cached
+ * copies (Upstash) are keyed by it, so a deploy never serves a document in the old shape.
+ */
+export const CONTENT_VERSION = 3;
+
+/** Brings every settings document of a Content to the current shape (see normalizeSettings). */
+export function normalizeContent(content: Content): Content {
+	return {
+		...content,
+		profile: normalizeSettings("profile", content.profile),
+		seo: normalizeSettings("seo", content.seo),
+		appearance: normalizeSettings("appearance", content.appearance),
+	};
+}
+
 /* ----------------------------------------------------------------------------
  * Articles: written in the admin panel ("site") or mirrored from dev.to ("devto").
  * ------------------------------------------------------------------------- */
