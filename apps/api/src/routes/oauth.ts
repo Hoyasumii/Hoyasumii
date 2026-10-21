@@ -1,6 +1,13 @@
-import { AuthorizationError, CimdFetchError, type ConsentDescription } from "@cloudflare/workers-oauth-provider";
+import {
+	AuthorizationError,
+	type AuthRequest,
+	authorizationErrorRedirect,
+	CimdFetchError,
+	type ConsentDescription,
+} from "@cloudflare/workers-oauth-provider";
 import { type Context, Hono } from "hono";
 import type { AppEnv } from "../app";
+import { hashKey } from "../services/api-keys";
 import type { Principal } from "../services/auth";
 
 export const SCOPES = { read: ["mcp:read"], write: ["mcp:read", "mcp:write"] } as const;
@@ -8,13 +15,23 @@ export const SCOPES = { read: ["mcp:read"], write: ["mcp:read", "mcp:write"] } a
 /** Everything from the client (name, scopes, hosts) is attacker-chosen: escape it all. */
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 
-function page(title: string, body: string, status = 200, headers = new Headers()): Response {
+/**
+ * `formAction` lists where the form may lead: the page itself and, after approving, the client's
+ * redirect URI. Browsers apply form-action to the redirect that follows the post too.
+ */
+function page(title: string, body: string, status = 200, formAction: string[] = []): Response {
+	const headers = new Headers();
 	headers.set("Content-Type", "text/html; charset=utf-8");
 	headers.set("Cache-Control", "no-store");
 	headers.set("X-Frame-Options", "DENY");
 	headers.set(
 		"Content-Security-Policy",
-		"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
+		[
+			"default-src 'none'",
+			"style-src 'unsafe-inline'",
+			`form-action ${["'self'", ...formAction].join(" ")}`,
+			"frame-ancestors 'none'",
+		].join("; "),
 	);
 	return new Response(
 		`<!doctype html>
@@ -63,7 +80,9 @@ function errorPage(message: string, status = 400): Response {
 	);
 }
 
-function consentPage(details: ConsentDescription, handle: string, query: string, failed: boolean): string {
+type ConsentView = Pick<ConsentDescription, "clientName" | "clientDomain" | "redirectHost" | "redirectIsLoopback">;
+
+function consentPage(details: ConsentView, handle: string, failed: boolean): string {
 	const name = escapeHtml(details.clientName || "Um aplicativo");
 	const origin = details.clientDomain
 		? `Publicado por <strong>${escapeHtml(details.clientDomain)}</strong>.`
@@ -76,9 +95,8 @@ function consentPage(details: ConsentDescription, handle: string, query: string,
 	${details.redirectIsLoopback ? "<p><strong>Isso envia o acesso para um app no seu computador.</strong> Continue só se você acabou de começar a conexão nele.</p>" : ""}
 </div>
 ${failed ? '<p class="error">E-mail ou senha incorretos, ou esta conta não pode editar o site.</p>' : ""}
-<form method="post">
+<form method="post" action="/authorize">
 	<input type="hidden" name="handle" value="${escapeHtml(handle)}">
-	<input type="hidden" name="query" value="${escapeHtml(query)}">
 	<fieldset>
 		<legend class="mono">Permissão</legend>
 		<label class="choice"><input type="radio" name="access" value="write" checked> Ler e editar o conteúdo</label>
@@ -96,8 +114,9 @@ ${failed ? '<p class="error">E-mail ou senha incorretos, ou esta conta não pode
 
 function helpers(c: Context<AppEnv>) {
 	const oauth = c.env?.OAUTH_PROVIDER;
-	if (!oauth) throw new Error("OAuthProvider helpers are missing: the Worker must be wrapped by OAuthProvider");
-	return oauth;
+	const kv = c.env?.OAUTH_KV;
+	if (!oauth || !kv) throw new Error("OAuthProvider helpers are missing: the Worker must be wrapped by OAuthProvider");
+	return { oauth, kv };
 }
 
 /** Errors the user can do something about become a page; anything else is a real failure. */
@@ -108,67 +127,107 @@ function handled(error: unknown): Response {
 	throw error;
 }
 
+/**
+ * A pending consent, kept server-side between showing the page and the owner's answer. The form
+ * carries only a random handle (stored as its hash) that works once and for ten minutes. The page
+ * isn't bound to the browser with a cookie (browsers that open it from another site may not send
+ * one back); approving needs the owner's email and password instead, which a forged or replayed
+ * form can't supply, and the page refuses to be framed.
+ */
+type PendingConsent = { request: AuthRequest; details: ConsentView; failures: number };
+
+const CONSENT_TTL_SECONDS = 600;
+const MAX_FAILURES = 5;
+const consentKey = (hash: string) => `portfolio:consent:${hash}`;
+
+/** Where the form may lead after approving: the client's redirect URI origin (or its scheme for native apps). */
+function redirectTarget(redirectUri: string): string[] {
+	try {
+		const url = new URL(redirectUri);
+		return [url.protocol === "https:" || url.protocol === "http:" ? url.origin : url.protocol];
+	} catch {
+		return [];
+	}
+}
+
+function renderConsent(pending: PendingConsent, handle: string, failed = false): Response {
+	return page(
+		`Autorizar ${pending.details.clientName || "aplicativo"}`,
+		consentPage(pending.details, handle, failed),
+		failed ? 401 : 200,
+		redirectTarget(pending.request.redirectUri),
+	);
+}
+
 /** The OAuth authorization endpoint: sign in as the site owner and approve an MCP connector. */
 export const oauthRoutes = new Hono<AppEnv>()
 	.get("/authorize", async (c) => {
 		try {
-			const oauth = helpers(c);
-			const url = new URL(c.req.url);
-			const failed = url.searchParams.get("login_error") === "1";
-			url.searchParams.delete("login_error");
+			const { oauth, kv } = helpers(c);
+			const request = await oauth.parseAuthRequest(c.req.raw);
+			const { clientName, clientDomain, redirectHost, redirectIsLoopback } = await oauth.describeConsent(request);
+			const pending: PendingConsent = {
+				request,
+				details: { clientName, clientDomain, redirectHost, redirectIsLoopback },
+				failures: 0,
+			};
 
-			const request = await oauth.parseAuthRequest(new Request(url, c.req.raw));
-			const details = await oauth.describeConsent(request);
-			const consent = await oauth.beginConsent(request);
-			return page(
-				`Autorizar ${details.clientName || "aplicativo"}`,
-				consentPage(details, consent.handle, url.search, failed),
-				200,
-				consent.headers,
-			);
+			const handle = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))))
+				.replace(/\+/g, "-")
+				.replace(/\//g, "_")
+				.replace(/=+$/, "");
+			await kv.put(consentKey(await hashKey(handle)), JSON.stringify(pending), {
+				expirationTtl: CONSENT_TTL_SECONDS,
+			});
+			return renderConsent(pending, handle);
 		} catch (error) {
 			return handled(error);
 		}
 	})
 	.post("/authorize", async (c) => {
 		try {
-			const oauth = helpers(c);
+			const { oauth, kv } = helpers(c);
 			const form = await c.req.formData();
 			const handle = String(form.get("handle") ?? "");
+			const key = consentKey(await hashKey(handle));
+			const stored = handle ? await kv.get(key) : null;
+			if (!stored) return errorPage("Este pedido de autorização expirou ou já foi usado.");
+			const pending = JSON.parse(stored) as PendingConsent;
 
 			if (form.get("decision") !== "approve") {
-				const denied = await oauth.denyConsent(c.req.raw, handle);
-				return new Response(null, { status: 302, headers: denied.headers });
+				await kv.delete(key);
+				return Response.redirect(authorizationErrorRedirect(pending.request, "access_denied"), 302);
 			}
 
 			const deps = c.get("deps");
 			const user = await deps.verifier.signIn(String(form.get("email") ?? ""), String(form.get("password") ?? ""));
 			if (!user || !deps.adminEmails.includes(user.email.toLowerCase())) {
-				// Start over with a fresh page: the handle is single-use and stays unused here.
-				const query = String(form.get("query") ?? "");
-				const retry = new URLSearchParams(query.startsWith("?") ? query.slice(1) : query);
-				retry.set("login_error", "1");
-				return c.redirect(`/authorize?${retry}`, 303);
+				pending.failures += 1;
+				if (pending.failures >= MAX_FAILURES) {
+					await kv.delete(key);
+					return errorPage("Muitas tentativas. Volte ao aplicativo e comece de novo.", 429);
+				}
+				await kv.put(key, JSON.stringify(pending), { expirationTtl: CONSENT_TTL_SECONDS });
+				return renderConsent(pending, handle, true);
 			}
 
+			await kv.delete(key);
 			const access = form.get("access") === "read" ? "read" : "write";
-			const approved = await oauth.approveConsent(c.req.raw, handle, { scope: [...SCOPES[access]] });
-			const client = await oauth.lookupClient(approved.request.clientId);
+			const scope = [...SCOPES[access]];
 			const principal: Principal = {
 				via: "oauth",
-				id: approved.request.clientId,
-				name: client?.clientName || "MCP connector",
-				scope: approved.request.scope.includes("mcp:write") ? "write" : "read",
+				id: pending.request.clientId,
+				name: pending.details.clientName || "MCP connector",
+				scope: access,
 			};
 			const { redirectTo } = await oauth.completeAuthorization({
-				request: approved.request,
+				request: { ...pending.request, scope },
 				userId: encodeURIComponent(user.id),
 				metadata: { clientName: principal.name, email: user.email },
-				scope: approved.request.scope,
+				scope,
 				props: { principal },
 			});
-			approved.headers.set("Location", redirectTo);
-			return new Response(null, { status: 302, headers: approved.headers });
+			return Response.redirect(redirectTo, 302);
 		} catch (error) {
 			return handled(error);
 		}
