@@ -18,11 +18,14 @@ export class GitHubDispatchPublisher implements Publisher {
 	constructor(
 		private readonly repository: string,
 		private readonly token: string,
-		private readonly fetcher: typeof fetch = fetch,
+		private readonly fetcher?: typeof fetch,
 	) {}
 
 	async publish(reason: string) {
-		const response = await this.fetcher(`https://api.github.com/repos/${this.repository}/dispatches`, {
+		// Workers reject fetch called as a method of another object ("Illegal invocation"), so
+		// resolve it first and call it unbound.
+		const send = this.fetcher ?? fetch;
+		const response = await send(`https://api.github.com/repos/${this.repository}/dispatches`, {
 			method: "POST",
 			headers: {
 				Accept: "application/vnd.github+json",
