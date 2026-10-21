@@ -14,8 +14,17 @@ function toEntry<T>(row: Pick<EntryRow, "id" | "data" | "position">): Entry<T> {
 	return { ...(row.data as T), id: row.id, position: row.position };
 }
 
-function fail(action: string, error: { message: string } | null): never {
-	throw new Error(`Supabase: could not ${action}: ${error?.message ?? "unknown error"}`);
+type SupabaseError = { message?: string; code?: string; details?: string | null; hint?: string | null };
+
+/** Describes a failed call with whatever Supabase returned, since some responses carry no message. */
+export function describeError(error: SupabaseError | null): string {
+	if (!error) return "no data returned";
+	const parts = [error.message, error.code && `code ${error.code}`, error.details, error.hint].filter(Boolean);
+	return parts.length > 0 ? parts.join(" · ") : JSON.stringify(error);
+}
+
+function fail(action: string, error: SupabaseError | null): never {
+	throw new Error(`Supabase: could not ${action}: ${describeError(error)}`);
 }
 
 /** Content stored in the `settings` and `entries` tables (see supabase/migrations). */
