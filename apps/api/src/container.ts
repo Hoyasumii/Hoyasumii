@@ -24,13 +24,20 @@ export type Deps = {
 	content: ContentService;
 	articles: ArticlesService;
 	adminEmails: string[];
+	/** Which adapters are in use, reported by /health. */
+	mode: { database: "supabase" | "memory"; cache: "upstash" | "memory" };
 	allowedOrigins: string[];
 };
 
 export type Adapters = Pick<Deps, "repository" | "cache" | "storage" | "verifier" | "publisher">;
 
-export function assemble(adapters: Adapters, env: Env): Deps {
+export function assemble(
+	adapters: Adapters,
+	env: Env,
+	mode: Deps["mode"] = { database: "memory", cache: "memory" },
+): Deps {
 	return {
+		mode,
 		...adapters,
 		content: new ContentService(adapters.repository, adapters.cache),
 		articles: new ArticlesService(adapters.repository, adapters.cache, env.DEVTO_USERNAME ?? "hoyasumii"),
@@ -87,10 +94,18 @@ export function depsFromEnv(env: Env): Deps {
 		adapters.publisher = new GitHubDispatchPublisher(env.GITHUB_REPOSITORY, env.GITHUB_DISPATCH_TOKEN);
 	}
 
-	const deps = assemble(adapters, {
-		...env,
-		ADMIN_EMAILS: hasSupabase ? env.ADMIN_EMAILS : (env.ADMIN_EMAILS ?? "dev@localhost"),
-	});
+	const mode: Deps["mode"] = {
+		database: hasSupabase ? "supabase" : "memory",
+		cache: hasUpstash ? "upstash" : "memory",
+	};
+	const deps = assemble(
+		adapters,
+		{
+			...env,
+			ADMIN_EMAILS: hasSupabase ? env.ADMIN_EMAILS : (env.ADMIN_EMAILS ?? "dev@localhost"),
+		},
+		mode,
+	);
 	cached = { env, deps };
 	return deps;
 }
