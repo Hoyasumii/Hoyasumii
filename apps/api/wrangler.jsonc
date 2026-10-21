@@ -15,7 +15,6 @@
 	"vars": {
 		"PUBLIC_API_URL": "https://portfolio-api.alanreisanjo.workers.dev",
 		"SUPABASE_STORAGE_BUCKET": "media",
-		"DEVTO_USERNAME": "hoyasumii",
 		"GITHUB_REPOSITORY": "Hoyasumii/Hoyasumii",
 		"ALLOWED_ORIGINS": "https://hoyasumii.dev,http://localhost:3000",
 		"ADMIN_EMAILS": "alanreisanjo@gmail.com"

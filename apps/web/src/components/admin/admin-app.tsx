@@ -6,6 +6,7 @@ import { AdminProvider, errorMessage, useAdmin } from "./context";
 import {
 	AppearanceSection,
 	ArticlesSection,
+	DevToSection,
 	ExperienceSection,
 	LinksSection,
 	ProfileSection,
@@ -19,6 +20,7 @@ const SECTIONS = {
 	profile: { label: "Perfil", render: () => <ProfileSection /> },
 	projects: { label: "Projetos", render: () => <ProjectsSection /> },
 	articles: { label: "Artigos", render: () => <ArticlesSection /> },
+	devto: { label: "dev.to", render: () => <DevToSection /> },
 	experience: { label: "Experiência", render: () => <ExperienceSection /> },
 	stack: { label: "Stack", render: () => <StackSection /> },
 	links: { label: "Links", render: () => <LinksSection /> },

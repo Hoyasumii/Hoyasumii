@@ -128,6 +128,7 @@ export const defaultSettings: Settings = {
 		accent: { light: "d4441c", dark: "ff6a3d" },
 		icons: { light: { variant: "light", tint: "accent" }, dark: { variant: "dark", tint: "accent" } },
 	},
+	devto: { enabled: true, url: "https://dev.to/hoyasumii" },
 };
 
 export const defaultCollections: { [N in CollectionName]: CollectionInput<N>[] } = {

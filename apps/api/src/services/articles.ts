@@ -1,7 +1,8 @@
-import type { Article, ArticleSummary, SiteArticle } from "@portfolio/shared";
+import { type Article, type ArticleSummary, devtoUsername, type SiteArticle } from "@portfolio/shared";
 import { type Cache, cacheKeys, remember } from "../cache/cache";
 import { notFound } from "../lib/errors";
 import type { ContentRepository } from "../repositories/content-repository";
+import type { ContentService } from "./content";
 
 const SITE_TTL_SECONDS = 60 * 60;
 const DEVTO_LIST_TTL_SECONDS = 30 * 60;
@@ -70,14 +71,14 @@ function fromSite(article: SiteArticle): ArticleSummary {
 }
 
 /**
- * Articles written in the admin panel plus the author's dev.to posts. dev.to is optional: when
- * it is down, the site's own articles are still served.
+ * Articles written in the admin panel plus the author's dev.to posts. dev.to is optional: it can be
+ * turned off in the settings, and when it is down the site's own articles are still served.
  */
 export class ArticlesService {
 	constructor(
 		private readonly repository: ContentRepository,
 		private readonly cache: Cache,
-		private readonly devtoUsername: string,
+		private readonly content: ContentService,
 		private readonly fetcher?: typeof fetch,
 	) {}
 
@@ -98,7 +99,9 @@ export class ArticlesService {
 	async get(slug: string): Promise<Article> {
 		const own = (await this.publishedSiteArticles()).find((article) => article.slug === slug);
 		if (own) return { ...fromSite(own), format: "markdown", body: own.body };
-		return this.devtoArticle(slug);
+		const username = await this.devtoUsername();
+		if (!username) throw notFound("Article");
+		return this.devtoArticle(username, slug);
 	}
 
 	async invalidate(): Promise<void> {
@@ -115,19 +118,26 @@ export class ArticlesService {
 		);
 	}
 
-	private devtoList(): Promise<ArticleSummary[]> {
-		return remember(this.cache, cacheKeys.devtoArticles, DEVTO_LIST_TTL_SECONDS, async () => {
+	/** Whose dev.to articles to list, from the settings; null when dev.to is off. */
+	private async devtoUsername(): Promise<string | null> {
+		return devtoUsername((await this.content.getPublic()).devto);
+	}
+
+	private async devtoList(): Promise<ArticleSummary[]> {
+		const username = await this.devtoUsername();
+		if (!username) return [];
+		return remember(this.cache, cacheKeys.devtoArticles(username), DEVTO_LIST_TTL_SECONDS, async () => {
 			const items = await this.devto<DevToListItem[]>(
-				`/articles?username=${encodeURIComponent(this.devtoUsername)}&per_page=100`,
+				`/articles?username=${encodeURIComponent(username)}&per_page=100`,
 			);
 			return items.map(fromDevTo);
 		});
 	}
 
-	private devtoArticle(slug: string): Promise<Article> {
-		return remember(this.cache, cacheKeys.devtoArticle(slug), DEVTO_ARTICLE_TTL_SECONDS, async () => {
+	private devtoArticle(username: string, slug: string): Promise<Article> {
+		return remember(this.cache, cacheKeys.devtoArticle(username, slug), DEVTO_ARTICLE_TTL_SECONDS, async () => {
 			const article = await this.devto<DevToArticle>(
-				`/articles/${encodeURIComponent(this.devtoUsername)}/${encodeURIComponent(slug)}`,
+				`/articles/${encodeURIComponent(username)}/${encodeURIComponent(slug)}`,
 			);
 			return { ...fromDevTo(article), format: "html" as const, body: article.body_html };
 		});
