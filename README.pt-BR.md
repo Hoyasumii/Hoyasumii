@@ -1,8 +1,8 @@
-<a href="https://skill-icons.alanreisanjo.workers.dev">
+<a href="https://hoyasumii.dev">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://skill-icons.alanreisanjo.workers.dev/og?i=ts%2Cbun%2Celysia%2Creact%2Cnext%2Cnodejs%2Cnest%2Cvue%2Ctailwind%2Cpostgres%2Cprisma%2Cdocker%2Csupabase%2Caws%2Czod%2Cghactions%2Cmongo%2Chtml%2Ccss%2Csass%2Cfigma%2Cmysql%2Csqlite%2Credis%2Ccf%2Cvercel%2Cterraform%2Cgit%2Clinux%2Cbash%2Cvite%2Cbiome%2Ceslint%2Cprettier%2Chusky%2Cplaywright%2Ccypress%2Creactnative%2Cexpo%2Credux%2Czustand%2Cstorybook%2Cpinia%2Cvuetify%2Cexpress%2Cfastify%2Chono%2Cjest%2Cvitest%2Cdrizzle%2Cswc%2Celectron%2Ccs%2Cnet%2Clit%2Cpy%2Cpr%2Cps%2Cruby%2Crails%2Cphp%2Claravel%2Csymfony%2Cjava%2Cdocusaurus%2Cclaude%2Cmcp%2Cgemini%2Copentelemetry%2Csignoz%2Cjs&bg=dark&theme=dark&perline=14&title=Hoyasumii">
-    <source media="(prefers-color-scheme: light)" srcset="https://skill-icons.alanreisanjo.workers.dev/og?i=ts%2Cbun%2Celysia%2Creact%2Cnext%2Cnodejs%2Cnest%2Cvue%2Ctailwind%2Cpostgres%2Cprisma%2Cdocker%2Csupabase%2Caws%2Czod%2Cghactions%2Cmongo%2Chtml%2Ccss%2Csass%2Cfigma%2Cmysql%2Csqlite%2Credis%2Ccf%2Cvercel%2Cterraform%2Cgit%2Clinux%2Cbash%2Cvite%2Cbiome%2Ceslint%2Cprettier%2Chusky%2Cplaywright%2Ccypress%2Creactnative%2Cexpo%2Credux%2Czustand%2Cstorybook%2Cpinia%2Cvuetify%2Cexpress%2Cfastify%2Chono%2Cjest%2Cvitest%2Cdrizzle%2Cswc%2Celectron%2Ccs%2Cnet%2Clit%2Cpy%2Cpr%2Cps%2Cruby%2Crails%2Cphp%2Claravel%2Csymfony%2Cjava%2Cdocusaurus%2Cclaude%2Cmcp%2Cgemini%2Copentelemetry%2Csignoz%2Cjs&bg=light&theme=dark&perline=14&title=Hoyasumii">
-    <img alt="https://skill-icons.alanreisanjo.workers.dev" src="https://skill-icons.alanreisanjo.workers.dev/og?i=ts,bun,elysia,react,next,nodejs,nest,vue,tailwind,postgres,prisma,docker,supabase,aws,zod,ghactions,mongo,html,css,sass,figma,mysql,sqlite,redis,cf,vercel,terraform,git,linux,bash,vite,biome,eslint,prettier,husky,playwright,cypress,reactnative,expo,redux,zustand,storybook,pinia,vuetify,express,fastify,hono,jest,vitest,drizzle,swc,electron,cs,net,lit,py,pr,ps,ruby,rails,php,laravel,symfony,java,docusaurus,claude,mcp,gemini,opentelemetry,signoz,js&bg=dark&theme=dark&perline=14&title=Hoyasumii">
+    <source media="(prefers-color-scheme: dark)" srcset="brand/og-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="brand/og.png">
+    <img alt="Alan Reis — Hoyasumii" src="brand/og-dark.png">
   </picture>
 </a>
 
@@ -40,36 +40,36 @@ Clientes TypeScript tipados para APIs de terceiros. Cada um vem como **SDK**, **
 
 ## ✨ Skill Icons
 
-O [**Skill Icons**](https://skill-icons.alanreisanjo.workers.dev/pt-BR/) coloca seu stack no README: 370+ ícones como API de SVG, um builder visual, cards de preview de link (como o do topo), um servidor MCP (`/mcp`) e um [pacote npm](https://www.npmjs.com/package/@hoyasumii/skill-icons) para React, Vue, Svelte, Angular, Solid e Astro. Roda em Cloudflare Workers. [repo](https://github.com/Hoyasumii/skill-icons)
+O [**Skill Icons**](https://skill-icons.alanreisanjo.workers.dev/pt-BR/) coloca seu stack no README: 600+ ícones como API de SVG, um builder visual, cards de preview de link, um servidor MCP (`/mcp`) e um [pacote npm](https://www.npmjs.com/package/@hoyasumii/skill-icons) para React, Vue, Svelte, Angular, Solid e Astro. Roda em Cloudflare Workers. [repo](https://github.com/Hoyasumii/skill-icons)
 
 ## 🧠 Stack
 
 **Runtime & Backend**
-> ![TypeScript, Bun, Elysia, Node.js, NestJS, Express, Fastify, Hono, Prisma, Drizzle, Zod, SWC](https://skill-icons.alanreisanjo.workers.dev/icons?i=ts,bun,elysia,nodejs,nest,express,fastify,hono,prisma,drizzle,zod,swc)
+> ![TypeScript, Bun, Elysia, Node.js, NestJS, Express, Fastify, Hono, Prisma, Drizzle, Zod, SWC](https://skill-icons.alanreisanjo.workers.dev/icons?i=ts,bun,elysia,nodejs,nest,express,fastify,hono,prisma,drizzle,zod,swc&tint=ff6a3d)
 
 **Frontend**
-> ![React, Next.js, Vue, Pinia, Vuetify, Tailwind, Sass, Redux, Zustand, Storybook, Lit, Vite, HTML, CSS, JavaScript, Figma](https://skill-icons.alanreisanjo.workers.dev/icons?i=react,next,vue,pinia,vuetify,tailwind,sass,redux,zustand,storybook,lit,vite,html,css,js,figma)
+> ![React, Next.js, Vue, Pinia, Vuetify, Tailwind, Sass, Redux, Zustand, Storybook, Lit, Vite, HTML, CSS, JavaScript, Figma](https://skill-icons.alanreisanjo.workers.dev/icons?i=react,next,vue,pinia,vuetify,tailwind,sass,redux,zustand,storybook,lit,vite,html,css,js,figma&tint=ff6a3d)
 
 **Mobile & Desktop**
-> ![React Native, Expo, Electron](https://skill-icons.alanreisanjo.workers.dev/icons?i=reactnative,expo,electron)
+> ![React Native, Expo, Electron](https://skill-icons.alanreisanjo.workers.dev/icons?i=reactnative,expo,electron&tint=ff6a3d)
 
 **Dados**
-> ![PostgreSQL, MySQL, SQLite, Redis, MongoDB, Supabase](https://skill-icons.alanreisanjo.workers.dev/icons?i=postgres,mysql,sqlite,redis,mongo,supabase)
+> ![PostgreSQL, MySQL, SQLite, Redis, MongoDB, Supabase](https://skill-icons.alanreisanjo.workers.dev/icons?i=postgres,mysql,sqlite,redis,mongo,supabase&tint=ff6a3d)
 
 **Cloud & DevOps**
-> ![AWS, Cloudflare, Vercel, Terraform, Docker, GitHub Actions, Git, Linux, Bash](https://skill-icons.alanreisanjo.workers.dev/icons?i=aws,cf,vercel,terraform,docker,ghactions,git,linux,bash)
+> ![AWS, Cloudflare, Vercel, Terraform, Docker, GitHub Actions, Git, Linux, Bash](https://skill-icons.alanreisanjo.workers.dev/icons?i=aws,cf,vercel,terraform,docker,ghactions,git,linux,bash&tint=ff6a3d)
 
 **Qualidade & Ferramentas**
-> ![Vitest, Jest, Playwright, Cypress, Biome, ESLint, Prettier, Husky, Docusaurus](https://skill-icons.alanreisanjo.workers.dev/icons?i=vitest,jest,playwright,cypress,biome,eslint,prettier,husky,docusaurus)
+> ![Vitest, Jest, Playwright, Cypress, Biome, ESLint, Prettier, Husky, Docusaurus](https://skill-icons.alanreisanjo.workers.dev/icons?i=vitest,jest,playwright,cypress,biome,eslint,prettier,husky,docusaurus&tint=ff6a3d)
 
 **IA & Observabilidade**
-> ![Claude, MCP, Gemini, OpenTelemetry, SigNoz](https://skill-icons.alanreisanjo.workers.dev/icons?i=claude,mcp,gemini,opentelemetry,signoz)
+> ![Claude, MCP, Gemini, OpenTelemetry, SigNoz](https://skill-icons.alanreisanjo.workers.dev/icons?i=claude,mcp,gemini,opentelemetry,signoz&tint=ff6a3d)
 
 **Também já trabalhei com**
-> ![C#, .NET, Python, Java, Ruby, Rails, PHP, Laravel, Symfony, Premiere, Photoshop](https://skill-icons.alanreisanjo.workers.dev/icons?i=cs,net,py,java,ruby,rails,php,laravel,symfony,pr,ps)
+> ![C#, .NET, Python, Java, Ruby, Rails, PHP, Laravel, Symfony, Premiere, Photoshop](https://skill-icons.alanreisanjo.workers.dev/icons?i=cs,net,py,java,ruby,rails,php,laravel,symfony,pr,ps&tint=ff6a3d)
 
 📚 **Estudando**
-> ![Nuxt, GraphQL](https://skill-icons.alanreisanjo.workers.dev/icons?i=nuxt,gql)
+> ![Nuxt, GraphQL](https://skill-icons.alanreisanjo.workers.dev/icons?i=nuxt,gql&tint=ff6a3d)
 
 ## 📫 Contato
 
