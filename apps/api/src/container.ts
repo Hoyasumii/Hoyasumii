@@ -4,9 +4,12 @@ import type { Cache } from "./cache/cache";
 import { MemoryCache } from "./cache/memory";
 import { UpstashCache } from "./cache/upstash";
 import type { Env } from "./env";
+import { type ApiKeyRepository, MemoryApiKeyRepository } from "./repositories/api-key-repository";
 import type { ContentRepository } from "./repositories/content-repository";
 import { MemoryContentRepository } from "./repositories/memory";
 import { SupabaseContentRepository } from "./repositories/supabase";
+import { SupabaseApiKeyRepository } from "./repositories/supabase-api-keys";
+import { ApiKeyService } from "./services/api-keys";
 import { ArticlesService } from "./services/articles";
 import { parseList, StaticTokenVerifier, SupabaseTokenVerifier, type TokenVerifier } from "./services/auth";
 import { ContentService } from "./services/content";
@@ -17,19 +20,21 @@ import { SupabaseMediaStorage } from "./storage/supabase";
 
 export type Deps = {
 	repository: ContentRepository;
+	apiKeyRepository: ApiKeyRepository;
 	cache: Cache;
 	storage: MediaStorage;
 	verifier: TokenVerifier;
 	publisher: Publisher;
 	content: ContentService;
 	articles: ArticlesService;
+	apiKeys: ApiKeyService;
 	adminEmails: string[];
 	/** Which adapters are in use, reported by /health. */
 	mode: { database: "supabase" | "memory"; cache: "upstash" | "memory" };
 	allowedOrigins: string[];
 };
 
-export type Adapters = Pick<Deps, "repository" | "cache" | "storage" | "verifier" | "publisher">;
+export type Adapters = Pick<Deps, "repository" | "apiKeyRepository" | "cache" | "storage" | "verifier" | "publisher">;
 
 export function assemble(
 	adapters: Adapters,
@@ -41,6 +46,7 @@ export function assemble(
 		...adapters,
 		content: new ContentService(adapters.repository, adapters.cache),
 		articles: new ArticlesService(adapters.repository, adapters.cache, env.DEVTO_USERNAME ?? "hoyasumii"),
+		apiKeys: new ApiKeyService(adapters.apiKeyRepository, adapters.cache),
 		adminEmails: parseList(env.ADMIN_EMAILS),
 		allowedOrigins: parseList(env.ALLOWED_ORIGINS),
 	};
@@ -69,6 +75,7 @@ export function depsFromEnv(env: Env): Deps {
 		});
 		adapters = {
 			repository: new SupabaseContentRepository(supabase),
+			apiKeyRepository: new SupabaseApiKeyRepository(supabase),
 			storage: new SupabaseMediaStorage(supabase, env.SUPABASE_STORAGE_BUCKET ?? "media"),
 			verifier: new SupabaseTokenVerifier(supabase),
 			cache: new MemoryCache(),
@@ -77,6 +84,7 @@ export function depsFromEnv(env: Env): Deps {
 	} else {
 		memoryAdapters ??= {
 			repository: new MemoryContentRepository(),
+			apiKeyRepository: new MemoryApiKeyRepository(),
 			storage: new MemoryMediaStorage(),
 			verifier: new StaticTokenVerifier({ [DEV_TOKEN]: { id: "dev", email: "dev@localhost" } }),
 			cache: new MemoryCache(),

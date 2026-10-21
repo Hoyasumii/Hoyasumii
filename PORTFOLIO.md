@@ -27,6 +27,23 @@ supabase/        Migrations (Postgres, RLS, bucket de mídia)
 - **Ícones** vêm do [Skill Icons](https://skill-icons.alanreisanjo.workers.dev). Por padrão eles são tingidos com a cor de destaque de cada tema e mostram as cores originais no hover (configurável em _Painel → Aparência_).
 - O cache é opcional: se o Upstash cair, a API lê direto do Supabase.
 
+## Chaves de API e servidor MCP
+
+Uma IA (ou um script) pode editar o site com as mesmas regras do painel: validação, slug único dos artigos e republicação automática.
+1. Em _Painel → Chaves de API_, crie uma chave com **Ler e editar** ou **Só ler**. Ela aparece uma única vez (`pk_…`); no banco fica só o hash SHA-256.
+2. Conecte o cliente MCP ao endpoint `https://<API_URL>/mcp` com o cabeçalho `Authorization: Bearer pk_…`. No Claude Code:
+
+   ```sh
+   claude mcp add --transport http portfolio https://portfolio-api.alanreisanjo.workers.dev/mcp \
+     --header "Authorization: Bearer pk_..."
+   ```
+
+   O painel mostra o comando e o JSON para Cursor, Codex e Claude Desktop já preenchidos.
+
+Ferramentas: `get_site_content`, `describe_schema`, `list_entries`, `get_entry`, `get_settings` e, com permissão de escrita, `create_entry`, `update_entry` (altera só os campos enviados), `delete_entry`, `reorder_entries`, `update_settings`, `upload_image_from_url` e `publish_site`. Uma chave "Só ler" não recebe as ferramentas de escrita.
+
+As mesmas chaves funcionam na API HTTP (`/admin/*`). Criar e revogar chaves exige o login do painel, então uma chave vazada não cria outras; revogar tem efeito imediato.
+
 ## Desenvolvimento
 
 ```sh

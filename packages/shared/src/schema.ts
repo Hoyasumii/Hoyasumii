@@ -187,3 +187,30 @@ export type ArticleSummary = {
 };
 
 export type Article = ArticleSummary & ({ format: "markdown"; body: string } | { format: "html"; body: string });
+
+/* ----------------------------------------------------------------------------
+ * API keys: let scripts and AI agents (through the MCP server) edit the site.
+ * ------------------------------------------------------------------------- */
+
+export const apiKeyScopes = ["read", "write"] as const;
+export type ApiKeyScope = (typeof apiKeyScopes)[number];
+
+export const apiKeyCreateSchema = z.object({
+	name: z.string().trim().min(1).max(60),
+	scope: z.enum(apiKeyScopes),
+});
+export type ApiKeyCreate = z.infer<typeof apiKeyCreateSchema>;
+
+/** What the API returns about a key; the key itself is only shown once, on creation. */
+export type ApiKey = {
+	id: string;
+	name: string;
+	/** First characters of the key, to tell keys apart. */
+	prefix: string;
+	scope: ApiKeyScope;
+	createdAt: string;
+	lastUsedAt: string | null;
+	revokedAt: string | null;
+};
+
+export type CreatedApiKey = { apiKey: ApiKey; key: string };
