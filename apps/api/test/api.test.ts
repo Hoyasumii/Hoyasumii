@@ -1,6 +1,7 @@
 import { type Content, defaultCollections, type Project, type SiteArticle } from "@portfolio/shared";
 import { describe, expect, it, vi } from "vitest";
 import { describeError } from "../src/repositories/supabase";
+import { SupabaseTokenVerifier } from "../src/services/auth";
 import { ADMIN, data, flush, STRANGER, setup } from "./helpers";
 
 const project = {
@@ -275,5 +276,22 @@ describe("supabase errors", () => {
 		expect(describeError({ code: "PGRST205" })).toBe("code PGRST205");
 		expect(describeError({} as never)).toBe("{}");
 		expect(describeError(null)).toBe("no data returned");
+	});
+});
+
+describe("supabase token verifier", () => {
+	function verifierFor(user: Record<string, unknown> | null) {
+		const client = { auth: { getUser: async () => ({ data: { user }, error: null }) } };
+		return new SupabaseTokenVerifier(client as never);
+	}
+
+	it("accepts confirmed accounts", async () => {
+		const user = { id: "1", email: "owner@example.com", email_confirmed_at: "2026-10-21T00:00:00Z" };
+		expect(await verifierFor(user).verify("t")).toEqual({ id: "1", email: "owner@example.com" });
+	});
+
+	it("rejects accounts whose email was never confirmed", async () => {
+		const user = { id: "1", email: "owner@example.com", email_confirmed_at: null };
+		expect(await verifierFor(user).verify("t")).toBeNull();
 	});
 });

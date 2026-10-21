@@ -14,6 +14,8 @@ export class SupabaseTokenVerifier implements TokenVerifier {
 	async verify(token: string) {
 		const { data, error } = await this.client.auth.getUser(token);
 		if (error || !data.user?.email) return null;
+		// An unconfirmed address proves nothing: anyone can sign up with someone else's email.
+		if (!data.user.email_confirmed_at) return null;
 		return { id: data.user.id, email: data.user.email };
 	}
 }
