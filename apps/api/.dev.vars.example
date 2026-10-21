@@ -6,5 +6,7 @@ UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 ADMIN_EMAILS=alanreisanjo@gmail.com
 ALLOWED_ORIGINS=http://localhost:3000
+# Public address of this API in dev (OAuth issuer and /mcp resource)
+PUBLIC_API_URL=http://127.0.0.1:8787
 GITHUB_REPOSITORY=Hoyasumii/Hoyasumii
 GITHUB_DISPATCH_TOKEN=

@@ -8,6 +8,7 @@ import type {
 	Content,
 	CreatedApiKey,
 	Entry,
+	OAuthConnection,
 	Settings,
 	SettingsKey,
 } from "./schema";
@@ -100,6 +101,10 @@ export function createPortfolioClient({ baseUrl, getToken, fetch: fetcher = fetc
 		createApiKey: (input: ApiKeyCreate) => request<CreatedApiKey>("/admin/api-keys", json("POST", input), true),
 		revokeApiKey: (id: string) =>
 			request<ApiKey>(`/admin/api-keys/${encodeURIComponent(id)}`, { method: "DELETE" }, true),
+
+		listConnections: () => request<OAuthConnection[]>("/admin/connections", {}, true),
+		revokeConnection: (id: string) =>
+			request<{ id: string }>(`/admin/connections/${encodeURIComponent(id)}`, { method: "DELETE" }, true),
 
 		/** Rebuilds the website now (saving already does this). */
 		publish: () => request<{ queued: boolean }>("/admin/publish", { method: "POST" }, true),

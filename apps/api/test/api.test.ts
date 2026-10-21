@@ -283,7 +283,7 @@ describe("supabase errors", () => {
 describe("supabase token verifier", () => {
 	function verifierFor(user: Record<string, unknown> | null) {
 		const client = { auth: { getUser: async () => ({ data: { user }, error: null }) } };
-		return new SupabaseTokenVerifier(client as never);
+		return new SupabaseTokenVerifier(client as never, () => client as never);
 	}
 
 	it("accepts confirmed accounts", async () => {
