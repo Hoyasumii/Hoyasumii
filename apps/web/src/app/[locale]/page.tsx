@@ -272,7 +272,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
 				{content.stack.length > 0 ? (
 					<Section id="stack" number={numberOf("stack")} label={d.stack}>
-						{appearance.iconTint ? <p className="hint">{d.hoverHint}</p> : null}
+						{appearance.icons.light.tint || appearance.icons.dark.tint ? <p className="hint">{d.hoverHint}</p> : null}
 						<dl className="stack">
 							{content.stack.map((group) => (
 								<div key={group.id} className="stack__group">

@@ -188,7 +188,7 @@ describe("settings", () => {
 		const response = await call("/admin/settings/appearance", {
 			method: "PUT",
 			token: ADMIN,
-			json: { iconTint: "#FFF" },
+			json: { icons: { light: { variant: "light", tint: "#FFF" }, dark: { variant: "dark", tint: "accent" } } },
 		});
 		expect(response.status).toBe(400);
 	});

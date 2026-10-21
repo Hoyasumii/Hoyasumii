@@ -277,17 +277,17 @@ export function ChipsField({
 	);
 }
 
-/** Picks Skill Icons by name, with a live preview in the site's tint. */
+/** Picks Skill Icons by name, previewed with the site's icon style for the dark theme. */
 export function IconsField({
 	label,
 	value,
 	onChange,
-	tint,
+	look = { variant: "dark" },
 }: {
 	label: string;
 	value: string[];
 	onChange: (value: string[]) => void;
-	tint?: string;
+	look?: { variant: "light" | "dark"; tint?: string };
 }) {
 	const [query, setQuery] = useState("");
 	const suggestions = useMemo(() => {
@@ -323,7 +323,12 @@ export function IconsField({
 					<ul className="icons-field__list">
 						{value.map((name, index) => (
 							<li key={name} className="icons-field__item">
-								<img src={iconUrl(resolveIconName(name) ?? name, "dark", tint)} alt="" width={32} height={32} />
+								<img
+									src={iconUrl(resolveIconName(name) ?? name, look.variant, look.tint)}
+									alt=""
+									width={32}
+									height={32}
+								/>
 								<span>{name}</span>
 								<span className="icons-field__actions">
 									<button
@@ -372,7 +377,7 @@ export function IconsField({
 								{suggestions.map((name) => (
 									<li key={name}>
 										<button type="button" onClick={() => add(name)}>
-											<img src={iconUrl(name, "dark", tint)} alt="" width={24} height={24} loading="lazy" />
+											<img src={iconUrl(name, look.variant, look.tint)} alt="" width={24} height={24} loading="lazy" />
 											{name}
 										</button>
 									</li>

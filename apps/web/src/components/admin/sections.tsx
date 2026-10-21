@@ -6,13 +6,15 @@ import {
 	type CollectionInput,
 	contrastRatio,
 	defaultAccent,
+	defaultIconStyles,
+	type IconStyle,
+	iconLook,
 	inkOn,
 	type Localized,
 	MIN_ACCENT_CONTRAST,
 	PAPER,
 } from "@portfolio/shared";
 import { iconUrl, parseTint, TINT_SWATCHES } from "@/lib/icons";
-import { tintFor } from "@/lib/theme";
 import { CollectionEditor } from "./collection-editor";
 import { useAdmin } from "./context";
 import { ChipsField, IconsField, ImageField, LocalizedField, TextArea, TextField, Toggle } from "./fields";
@@ -21,9 +23,9 @@ import { SettingsEditor } from "./settings-editor";
 
 const blank = (): Localized => ({ pt: "", en: "" });
 
-/** The tint the admin previews icons with (dark theme, like the panel). */
-function usePreviewTint() {
-	return tintFor(useAdmin().appearance, "dark");
+/** The icon style the admin previews icons with (the dark theme, like the panel). */
+function usePreviewLook() {
+	return iconLook(useAdmin().appearance, "dark");
 }
 
 function slugify(text: string): string {
@@ -117,7 +119,7 @@ const emptyProject = (): CollectionInput<"projects"> => ({
 });
 
 export function ProjectsSection() {
-	const tint = usePreviewTint();
+	const look = usePreviewLook();
 	return (
 		<CollectionEditor
 			name="projects"
@@ -149,7 +151,7 @@ export function ProjectsSection() {
 						value={value.summary}
 						onChange={(summary) => set({ ...value, summary })}
 					/>
-					<IconsField label="Stack" value={value.stack} tint={tint} onChange={(stack) => set({ ...value, stack })} />
+					<IconsField label="Stack" value={value.stack} look={look} onChange={(stack) => set({ ...value, stack })} />
 					<div className="grid-2">
 						{(["repo", "site", "docs", "npm"] as const).map((key) => (
 							<TextField
@@ -369,7 +371,7 @@ export function ExperienceSection() {
 /* ------------------------------------------------------------------------- */
 
 export function StackSection() {
-	const tint = usePreviewTint();
+	const look = usePreviewLook();
 	return (
 		<CollectionEditor
 			name="stack"
@@ -383,7 +385,7 @@ export function StackSection() {
 			{(value, set) => (
 				<>
 					<LocalizedField label="Título" value={value.title} onChange={(title) => set({ ...value, title })} />
-					<IconsField label="Ícones" value={value.icons} tint={tint} onChange={(icons) => set({ ...value, icons })} />
+					<IconsField label="Ícones" value={value.icons} look={look} onChange={(icons) => set({ ...value, icons })} />
 				</>
 			)}
 		</CollectionEditor>
@@ -494,9 +496,101 @@ function AccentPreview({ appearance, theme }: { appearance: Appearance; theme: "
 			<span className="accent-preview__button">Botão</span>
 			<div className="accent-preview__icons">
 				{PREVIEW_ICONS.map((name) => (
-					<img key={name} src={iconUrl(name, theme, tintFor(appearance, theme))} alt={name} width={32} height={32} />
+					<img
+						key={name}
+						src={iconUrl(name, iconLook(appearance, theme).variant, iconLook(appearance, theme).tint)}
+						alt={name}
+						width={32}
+						height={32}
+					/>
 				))}
 			</div>
+		</div>
+	);
+}
+
+/** Variant and tint of Skill Icons in one theme of the site. */
+function IconStyleEditor({
+	theme,
+	style,
+	onChange,
+}: {
+	theme: "light" | "dark";
+	style: IconStyle;
+	onChange: (style: IconStyle) => void;
+}) {
+	const mode = style.tint === "accent" ? "accent" : style.tint ? "custom" : "original";
+	const label = THEME_LABEL[theme].toLowerCase();
+	return (
+		<div className="icon-style">
+			<p className="icon-style__title">No tema {label}</p>
+			<div className="icon-style__row">
+				<span className="field__label">Variante</span>
+				<div className="segmented">
+					{(["light", "dark"] as const).map((variant) => (
+						<label key={variant} className={style.variant === variant ? "is-active" : ""}>
+							<input
+								type="radio"
+								name={`icon-variant-${theme}`}
+								checked={style.variant === variant}
+								onChange={() => onChange({ ...style, variant })}
+							/>
+							{THEME_LABEL[variant]}
+						</label>
+					))}
+				</div>
+			</div>
+			<div className="icon-style__row">
+				<span className="field__label">Cor</span>
+				<div className="segmented">
+					{(
+						[
+							["accent", "Destaque"],
+							["custom", "Outra cor"],
+							["original", "Originais"],
+						] as const
+					).map(([key, text]) => (
+						<label key={key} className={mode === key ? "is-active" : ""}>
+							<input
+								type="radio"
+								name={`icon-tint-${theme}`}
+								checked={mode === key}
+								onChange={() =>
+									onChange({
+										...style,
+										tint: key === "accent" ? "accent" : key === "original" ? "" : TINT_SWATCHES[0],
+									})
+								}
+							/>
+							{text}
+						</label>
+					))}
+				</div>
+			</div>
+			{mode === "custom" ? (
+				<div className="swatches">
+					{TINT_SWATCHES.map((swatch) => (
+						<button
+							key={swatch}
+							type="button"
+							className={`swatch${style.tint === swatch ? " is-active" : ""}`}
+							style={{ background: `#${swatch}` }}
+							aria-label={`#${swatch}`}
+							onClick={() => onChange({ ...style, tint: swatch })}
+						/>
+					))}
+					<input
+						className="input swatches__hex"
+						aria-label={`Cor dos ícones no tema ${label}, em hexadecimal`}
+						key={style.tint}
+						defaultValue={style.tint}
+						onChange={(event) => {
+							const parsed = parseTint(event.target.value);
+							if (parsed) onChange({ ...style, tint: parsed });
+						}}
+					/>
+				</div>
+			) : null}
 		</div>
 	);
 }
@@ -512,9 +606,11 @@ export function AppearanceSection() {
 		>
 			{(value, set) => {
 				const accent = value.accent ?? defaultAccent;
-				const current = { ...value, accent };
-				const mode = value.iconTint === "accent" ? "accent" : value.iconTint ? "custom" : "original";
+				const icons = value.icons ?? defaultIconStyles;
+				const current = { ...value, accent, icons };
 				const setAccent = (next: Appearance["accent"]) => set({ ...current, accent: next });
+				const setIcons = (theme: "light" | "dark", style: IconStyle) =>
+					set({ ...current, icons: { ...icons, [theme]: style } });
 
 				return (
 					<>
@@ -563,60 +659,16 @@ export function AppearanceSection() {
 						</fieldset>
 
 						<fieldset className="field">
-							<legend className="field__label">Tonalização dos ícones</legend>
-							<p className="field__hint">Ao passar o mouse, cada ícone mostra as cores originais.</p>
-							<div className="segmented">
-								{(
-									[
-										["accent", "Cor de destaque"],
-										["custom", "Outra cor"],
-										["original", "Cores originais"],
-									] as const
-								).map(([key, text]) => (
-									<label key={key} className={mode === key ? "is-active" : ""}>
-										<input
-											type="radio"
-											name="tint-mode"
-											checked={mode === key}
-											onChange={() =>
-												set({
-													...current,
-													iconTint: key === "accent" ? "accent" : key === "original" ? "" : TINT_SWATCHES[0],
-												})
-											}
-										/>
-										{text}
-									</label>
-								))}
+							<legend className="field__label">Ícones do Skill Icons</legend>
+							<p className="field__hint">
+								Escolha, para cada tema do site, a variante do ícone e a cor. Ícones tonalizados mostram as cores
+								originais ao passar o mouse.
+							</p>
+							<div className="icon-styles">
+								<IconStyleEditor theme="light" style={icons.light} onChange={(style) => setIcons("light", style)} />
+								<IconStyleEditor theme="dark" style={icons.dark} onChange={(style) => setIcons("dark", style)} />
 							</div>
 						</fieldset>
-
-						{mode === "custom" ? (
-							<div className="field">
-								<span className="field__label">Cor dos ícones</span>
-								<div className="swatches">
-									{TINT_SWATCHES.map((swatch) => (
-										<button
-											key={swatch}
-											type="button"
-											className={`swatch${value.iconTint === swatch ? " is-active" : ""}`}
-											style={{ background: `#${swatch}` }}
-											aria-label={`#${swatch}`}
-											onClick={() => set({ ...current, iconTint: swatch })}
-										/>
-									))}
-									<input
-										className="input swatches__hex"
-										aria-label="Cor em hexadecimal"
-										defaultValue={value.iconTint}
-										onChange={(event) => {
-											const parsed = parseTint(event.target.value);
-											if (parsed) set({ ...current, iconTint: parsed });
-										}}
-									/>
-								</div>
-							</div>
-						) : null}
 
 						<div className="field">
 							<span className="field__label">Prévia</span>
