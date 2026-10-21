@@ -5,6 +5,7 @@ import { fontClasses } from "@/lib/fonts";
 import { isLocale, locales, t } from "@/lib/i18n";
 import { themeScript } from "@/lib/theme";
 import "../site.css";
+import { AccentStyle } from "@/components/accent-style";
 import { InlineScript } from "@/components/inline-script";
 
 export const dynamicParams = false;
@@ -54,11 +55,13 @@ export default async function LocaleLayout({
 }) {
 	const { locale } = await params;
 	if (!isLocale(locale)) notFound();
+	const { appearance } = await getContent();
 
 	return (
 		<html lang={locale === "pt" ? "pt-BR" : "en"} className={fontClasses} suppressHydrationWarning>
 			<head>
 				<InlineScript code={themeScript} />
+				<AccentStyle accent={appearance.accent} />
 			</head>
 			<body>{children}</body>
 		</html>

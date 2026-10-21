@@ -120,7 +120,7 @@ export const defaultSettings: Settings = {
 			pt: "Desenvolvedor fullstack de Aracaju. TypeScript, Bun e Elysia; CMS headless, SDKs tipados e servidores MCP.",
 		},
 	},
-	appearance: { iconTint: "accent" },
+	appearance: { iconTint: "accent", accent: { light: "d4441c", dark: "ff6a3d" } },
 };
 
 export const defaultCollections: { [N in CollectionName]: CollectionInput<N>[] } = {

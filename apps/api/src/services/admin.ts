@@ -4,6 +4,7 @@ import {
 	collectionNames,
 	collectionSchemas,
 	type Entry,
+	normalizeSettings,
 	type Settings,
 	type SettingsKey,
 	settingsKeys,
@@ -54,7 +55,8 @@ export class AdminService {
 	) {}
 
 	async getSettings<K extends SettingsKey>(key: K): Promise<Settings[K]> {
-		return (await this.deps.repository.getSettings(key)) ?? (await this.deps.content.getPublic())[key];
+		const stored = await this.deps.repository.getSettings(key);
+		return stored ? normalizeSettings(key, stored) : (await this.deps.content.getPublic())[key];
 	}
 
 	async putSettings<K extends SettingsKey>(key: K, value: unknown): Promise<Settings[K]> {

@@ -1,8 +1,18 @@
 "use client";
 
-import type { CollectionInput, Localized } from "@portfolio/shared";
+import {
+	type Appearance,
+	accentFor,
+	type CollectionInput,
+	contrastRatio,
+	defaultAccent,
+	inkOn,
+	type Localized,
+	MIN_ACCENT_CONTRAST,
+	PAPER,
+} from "@portfolio/shared";
 import { iconUrl, parseTint, TINT_SWATCHES } from "@/lib/icons";
-import { ACCENT, tintFor } from "@/lib/theme";
+import { tintFor } from "@/lib/theme";
 import { CollectionEditor } from "./collection-editor";
 import { useAdmin } from "./context";
 import { ChipsField, IconsField, ImageField, LocalizedField, TextArea, TextField, Toggle } from "./fields";
@@ -13,7 +23,7 @@ const blank = (): Localized => ({ pt: "", en: "" });
 
 /** The tint the admin previews icons with (dark theme, like the panel). */
 function usePreviewTint() {
-	return tintFor(useAdmin().tint, "dark");
+	return tintFor(useAdmin().appearance, "dark");
 }
 
 function slugify(text: string): string {
@@ -407,21 +417,154 @@ export function LinksSection() {
 
 const PREVIEW_ICONS = ["ts", "react", "bun", "postgres", "docker", "figma"];
 
+/** Accent presets: a base color; each theme's variant is derived to stay readable. */
+const ACCENT_PRESETS = [
+	{ name: "Brasa", light: "d4441c", dark: "ff6a3d" },
+	{ name: "Musgo", light: "2f7a3d", dark: "5fd27a" },
+	{ name: "Oceano", light: "1f5fd1", dark: "6aa5ff" },
+	{ name: "Violeta", light: "6b3fd4", dark: "b493ff" },
+	{ name: "Rosa", light: "c2185b", dark: "ff6fa8" },
+	{ name: "Âmbar", light: "9a6200", dark: "ffb238" },
+	{ name: "Grafite", light: "3d3c39", dark: "c9c7bf" },
+];
+
+const THEME_LABEL = { light: "Claro", dark: "Escuro" } as const;
+
+function ContrastBadge({ color, theme }: { color: string; theme: "light" | "dark" }) {
+	const ratio = contrastRatio(color, PAPER[theme]);
+	const ok = ratio >= MIN_ACCENT_CONTRAST;
+	return (
+		<span className={`contrast${ok ? "" : " contrast--low"}`} title="Contraste com o fundo (WCAG, mínimo 3:1)">
+			{ratio.toFixed(1)}:1 {ok ? "ok" : "baixo"}
+		</span>
+	);
+}
+
+function AccentField({
+	theme,
+	value,
+	onChange,
+}: {
+	theme: "light" | "dark";
+	value: string;
+	onChange: (hex: string) => void;
+}) {
+	return (
+		<div className="accent-field">
+			<span className="field__label">Tema {THEME_LABEL[theme].toLowerCase()}</span>
+			<div className="accent-field__row">
+				<input
+					type="color"
+					aria-label={`Cor de destaque no tema ${THEME_LABEL[theme].toLowerCase()}`}
+					value={`#${value}`}
+					onChange={(event) => onChange(event.target.value.slice(1).toLowerCase())}
+				/>
+				<input
+					className="input accent-field__hex"
+					aria-label={`Hexadecimal do tema ${THEME_LABEL[theme].toLowerCase()}`}
+					key={value}
+					defaultValue={value}
+					onChange={(event) => {
+						const parsed = parseTint(event.target.value);
+						if (parsed) onChange(parsed);
+					}}
+				/>
+				<ContrastBadge color={value} theme={theme} />
+			</div>
+		</div>
+	);
+}
+
+/** A slice of the site in one theme, drawn with the chosen colors. */
+function AccentPreview({ appearance, theme }: { appearance: Appearance; theme: "light" | "dark" }) {
+	const accent = appearance.accent[theme];
+	return (
+		<div
+			className={`accent-preview accent-preview--${theme}`}
+			style={{ "--preview-accent": `#${accent}`, "--preview-ink": `#${inkOn(accent)}` } as React.CSSProperties}
+		>
+			<span className="accent-preview__label">{THEME_LABEL[theme]}</span>
+			<p className="accent-preview__name">
+				ALAN <span>REIS</span>
+			</p>
+			<p className="accent-preview__section">
+				<span>02</span> Trabalho selecionado
+			</p>
+			<p className="accent-preview__link">Link em destaque ↗</p>
+			<span className="accent-preview__button">Botão</span>
+			<div className="accent-preview__icons">
+				{PREVIEW_ICONS.map((name) => (
+					<img key={name} src={iconUrl(name, theme, tintFor(appearance, theme))} alt={name} width={32} height={32} />
+				))}
+			</div>
+		</div>
+	);
+}
+
 export function AppearanceSection() {
-	const { setTint } = useAdmin();
+	const { setAppearance } = useAdmin();
 	return (
 		<SettingsEditor
 			settingsKey="appearance"
 			title="Aparência"
-			description="Cor dos ícones do Skill Icons em todo o site. Ao passar o mouse, cada ícone mostra as cores originais."
-			onSaved={(value) => setTint(value.iconTint)}
+			description="Cor de destaque do site e cor dos ícones do Skill Icons."
+			onSaved={(value) => setAppearance(value)}
 		>
 			{(value, set) => {
+				const accent = value.accent ?? defaultAccent;
+				const current = { ...value, accent };
 				const mode = value.iconTint === "accent" ? "accent" : value.iconTint ? "custom" : "original";
+				const setAccent = (next: Appearance["accent"]) => set({ ...current, accent: next });
+
 				return (
 					<>
 						<fieldset className="field">
-							<legend className="field__label">Tonalização</legend>
+							<legend className="field__label">Cor de destaque</legend>
+							<p className="field__hint">
+								Usada no nome, nos números das seções, nos links e nos botões. Cada tema tem a sua variante, para ficar
+								legível nos dois fundos.
+							</p>
+							<div className="swatches">
+								{ACCENT_PRESETS.map((preset) => (
+									<button
+										key={preset.name}
+										type="button"
+										className={`swatch swatch--pair${accent.light === preset.light && accent.dark === preset.dark ? " is-active" : ""}`}
+										style={{ background: `linear-gradient(135deg, #${preset.light} 50%, #${preset.dark} 50%)` }}
+										aria-label={preset.name}
+										title={preset.name}
+										onClick={() => setAccent({ light: preset.light, dark: preset.dark })}
+									/>
+								))}
+							</div>
+							<div className="grid-2">
+								<AccentField theme="light" value={accent.light} onChange={(light) => setAccent({ ...accent, light })} />
+								<AccentField theme="dark" value={accent.dark} onChange={(dark) => setAccent({ ...accent, dark })} />
+							</div>
+							<div className="accent-actions">
+								<button
+									type="button"
+									className="button"
+									onClick={() => setAccent({ light: accent.light, dark: accentFor("dark", accent.light) })}
+								>
+									Gerar escuro a partir do claro
+								</button>
+								<button
+									type="button"
+									className="button"
+									onClick={() => setAccent({ light: accentFor("light", accent.dark), dark: accent.dark })}
+								>
+									Gerar claro a partir do escuro
+								</button>
+								<button type="button" className="button button--ghost" onClick={() => setAccent(defaultAccent)}>
+									Voltar ao padrão
+								</button>
+							</div>
+						</fieldset>
+
+						<fieldset className="field">
+							<legend className="field__label">Tonalização dos ícones</legend>
+							<p className="field__hint">Ao passar o mouse, cada ícone mostra as cores originais.</p>
 							<div className="segmented">
 								{(
 									[
@@ -437,6 +580,7 @@ export function AppearanceSection() {
 											checked={mode === key}
 											onChange={() =>
 												set({
+													...current,
 													iconTint: key === "accent" ? "accent" : key === "original" ? "" : TINT_SWATCHES[0],
 												})
 											}
@@ -449,7 +593,7 @@ export function AppearanceSection() {
 
 						{mode === "custom" ? (
 							<div className="field">
-								<span className="field__label">Cor</span>
+								<span className="field__label">Cor dos ícones</span>
 								<div className="swatches">
 									{TINT_SWATCHES.map((swatch) => (
 										<button
@@ -458,7 +602,7 @@ export function AppearanceSection() {
 											className={`swatch${value.iconTint === swatch ? " is-active" : ""}`}
 											style={{ background: `#${swatch}` }}
 											aria-label={`#${swatch}`}
-											onClick={() => set({ iconTint: swatch })}
+											onClick={() => set({ ...current, iconTint: swatch })}
 										/>
 									))}
 									<input
@@ -467,7 +611,7 @@ export function AppearanceSection() {
 										defaultValue={value.iconTint}
 										onChange={(event) => {
 											const parsed = parseTint(event.target.value);
-											if (parsed) set({ iconTint: parsed });
+											if (parsed) set({ ...current, iconTint: parsed });
 										}}
 									/>
 								</div>
@@ -476,27 +620,10 @@ export function AppearanceSection() {
 
 						<div className="field">
 							<span className="field__label">Prévia</span>
-							<div className="tint-preview">
-								{(["dark", "light"] as const).map((theme) => (
-									<div key={theme} className={`tint-preview__row tint-preview__row--${theme}`}>
-										<span>{theme === "dark" ? "Escuro" : "Claro"}</span>
-										{PREVIEW_ICONS.map((name) => (
-											<img
-												key={name}
-												src={iconUrl(name, theme, tintFor(value.iconTint, theme))}
-												alt={name}
-												width={36}
-												height={36}
-											/>
-										))}
-									</div>
-								))}
+							<div className="accent-previews">
+								<AccentPreview appearance={current} theme="light" />
+								<AccentPreview appearance={current} theme="dark" />
 							</div>
-							{mode === "accent" ? (
-								<p className="field__hint">
-									#{ACCENT.dark} no tema escuro e #{ACCENT.light} no claro, as mesmas cores de destaque do site.
-								</p>
-							) : null}
 						</div>
 					</>
 				);

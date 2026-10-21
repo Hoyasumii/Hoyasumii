@@ -41,9 +41,16 @@ export const seoSchema = z.object({
 	description: localized,
 });
 
+const hexColor = z.string().regex(/^[0-9a-f]{6}$/, "Use 6 hex digits without #");
+
+/** The site's accent color in each theme (hex, no "#"). */
+export const defaultAccent = { light: "d4441c", dark: "ff6a3d" };
+
 export const appearanceSchema = z.object({
 	/** Tint applied to every Skill Icon on the site. */
 	iconTint: tintSchema,
+	/** Accent color, per theme: headings, numbers, links and buttons. */
+	accent: z.object({ light: hexColor, dark: hexColor }).default(defaultAccent),
 });
 
 export const settingsSchemas = {
@@ -53,6 +60,15 @@ export const settingsSchemas = {
 } as const;
 
 export type SettingsKey = keyof typeof settingsSchemas;
+/**
+ * Fills fields added after a settings document was saved (like `appearance.accent`) with their
+ * defaults. A document that no longer matches the schema is returned as stored.
+ */
+export function normalizeSettings<K extends SettingsKey>(key: K, value: unknown): Settings[K] {
+	const parsed = settingsSchemas[key].safeParse(value);
+	return (parsed.success ? parsed.data : value) as Settings[K];
+}
+
 export const settingsKeys = Object.keys(settingsSchemas) as SettingsKey[];
 export type Settings = { [K in SettingsKey]: z.infer<(typeof settingsSchemas)[K]> };
 export type Profile = Settings["profile"];

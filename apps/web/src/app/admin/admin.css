@@ -967,3 +967,135 @@ select.input {
 	cursor: pointer;
 	margin-bottom: 8px;
 }
+
+/* Accent color ------------------------------------------------------------ */
+
+.swatch--pair {
+	width: 36px;
+	height: 36px;
+}
+
+.accent-field {
+	display: grid;
+	gap: 8px;
+}
+
+.accent-field__row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.accent-field__row input[type="color"] {
+	width: 44px;
+	height: 40px;
+	padding: 2px;
+	border: 1px solid var(--rule);
+	background: var(--paper-2);
+	cursor: pointer;
+}
+
+.accent-field__hex {
+	width: 110px;
+	font-family: var(--mono);
+}
+
+.contrast {
+	font-family: var(--mono);
+	font-size: 11px;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+
+.contrast--low {
+	color: var(--paper);
+	background: #c62828;
+	padding: 2px 6px;
+}
+
+.accent-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.accent-previews {
+	display: grid;
+	gap: 1px;
+	border: 1px solid var(--rule);
+}
+
+@media (min-width: 900px) {
+	.accent-previews {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+.accent-preview {
+	display: grid;
+	gap: 10px;
+	align-content: start;
+	padding: 20px;
+}
+
+.accent-preview--light {
+	background: #ebe9e3;
+	color: #141413;
+}
+
+.accent-preview--dark {
+	background: #0e0e0d;
+	color: #ecebe5;
+}
+
+.accent-preview__label {
+	font-family: var(--mono);
+	font-size: 11px;
+	text-transform: uppercase;
+	opacity: 0.6;
+}
+
+.accent-preview__name {
+	font-size: 3rem;
+	font-weight: 800;
+	font-stretch: 62%;
+	font-variation-settings: "wdth" 62;
+	line-height: 0.85;
+}
+
+.accent-preview__name span,
+.accent-preview__section span,
+.accent-preview__link {
+	color: var(--preview-accent);
+}
+
+.accent-preview__section {
+	font-family: var(--mono);
+	font-size: 12px;
+	text-transform: uppercase;
+}
+
+.accent-preview__section span {
+	margin-right: 8px;
+}
+
+.accent-preview__link {
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
+.accent-preview__button {
+	justify-self: start;
+	padding: 8px 14px;
+	background: var(--preview-accent);
+	color: var(--preview-ink);
+	font-family: var(--mono);
+	font-size: 12px;
+	text-transform: uppercase;
+}
+
+.accent-preview__icons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}

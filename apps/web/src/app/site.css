@@ -171,7 +171,10 @@ button {
 	gap: 20px;
 }
 
-.topbar__nav a,
+.topbar__nav a {
+	transition: color 0.15s;
+}
+
 .topbar__nav a:hover {
 	color: var(--accent);
 }

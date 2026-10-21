@@ -2,6 +2,7 @@ import {
 	type Content,
 	contentCollectionNames,
 	defaultSettings,
+	normalizeSettings,
 	type Settings,
 	type SettingsKey,
 	settingsKeys,
@@ -48,6 +49,7 @@ export class ContentService {
 	}
 
 	private async settingsOrDefault<K extends SettingsKey>(key: K): Promise<Settings[K]> {
-		return (await this.repository.getSettings(key)) ?? defaultSettings[key];
+		const stored = await this.repository.getSettings(key);
+		return stored ? normalizeSettings(key, stored) : defaultSettings[key];
 	}
 }
