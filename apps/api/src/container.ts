@@ -41,11 +41,12 @@ export function assemble(
 	env: Env,
 	mode: Deps["mode"] = { database: "memory", cache: "memory" },
 ): Deps {
+	const content = new ContentService(adapters.repository, adapters.cache);
 	return {
 		mode,
 		...adapters,
-		content: new ContentService(adapters.repository, adapters.cache),
-		articles: new ArticlesService(adapters.repository, adapters.cache, env.DEVTO_USERNAME ?? "hoyasumii"),
+		content,
+		articles: new ArticlesService(adapters.repository, adapters.cache, content),
 		apiKeys: new ApiKeyService(adapters.apiKeyRepository, adapters.cache),
 		adminEmails: parseList(env.ADMIN_EMAILS),
 		allowedOrigins: parseList(env.ALLOWED_ORIGINS),

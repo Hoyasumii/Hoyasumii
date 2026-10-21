@@ -80,10 +80,34 @@ export const appearanceSchema = z.object({
 	icons: z.object({ light: iconStyleSchema, dark: iconStyleSchema }).default(defaultIconStyles),
 });
 
+const devtoPage = /^https?:\/\/(?:www\.)?dev\.to\/([A-Za-z0-9_]+)\/?$/;
+
+/** Whether the site lists the author's dev.to articles, and whose. */
+export const devtoSchema = z
+	.object({
+		enabled: z.boolean(),
+		/** Profile page, e.g. https://dev.to/username. */
+		url: z.union([
+			z.literal(""),
+			z.string().trim().regex(devtoPage, "Use the profile page, e.g. https://dev.to/username"),
+		]),
+	})
+	.refine((value) => !value.enabled || value.url !== "", {
+		message: "Set the dev.to page to show its articles",
+		path: ["url"],
+	});
+
+/** The dev.to username whose articles the site lists, or null when dev.to is off. */
+export function devtoUsername(devto: Pick<z.infer<typeof devtoSchema>, "enabled" | "url">): string | null {
+	if (!devto.enabled) return null;
+	return devtoPage.exec(devto.url.trim())?.[1] ?? null;
+}
+
 export const settingsSchemas = {
 	profile: profileSchema,
 	seo: seoSchema,
 	appearance: appearanceSchema,
+	devto: devtoSchema,
 } as const;
 
 export type SettingsKey = keyof typeof settingsSchemas;
@@ -114,6 +138,7 @@ export type Settings = { [K in SettingsKey]: z.infer<(typeof settingsSchemas)[K]
 export type Profile = Settings["profile"];
 export type Seo = Settings["seo"];
 export type Appearance = Settings["appearance"];
+export type DevTo = Settings["devto"];
 
 /* ----------------------------------------------------------------------------
  * Collections: ordered lists of entries, edited one entry at a time.
@@ -226,7 +251,7 @@ export type Content = Settings & Pick<Collections, ContentCollectionName> & { up
  * Version of the Content shape. Bump it whenever settings or collections change shape: cached
  * copies (Upstash) are keyed by it, so a deploy never serves a document in the old shape.
  */
-export const CONTENT_VERSION = 4;
+export const CONTENT_VERSION = 5;
 
 /** Brings every settings document of a Content to the current shape (see normalizeSettings). */
 export function normalizeContent(content: Content): Content {
@@ -235,6 +260,7 @@ export function normalizeContent(content: Content): Content {
 		profile: normalizeSettings("profile", content.profile),
 		seo: normalizeSettings("seo", content.seo),
 		appearance: normalizeSettings("appearance", content.appearance),
+		devto: normalizeSettings("devto", content.devto),
 	};
 }
 

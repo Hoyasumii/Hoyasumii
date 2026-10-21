@@ -246,6 +246,50 @@ describe("articles", () => {
 		vi.restoreAllMocks();
 	});
 
+	it("lists dev.to articles only while enabled, from the configured page", async () => {
+		const ctx = setup();
+		const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+			Response.json([
+				{
+					slug: "from-devto",
+					title: "From dev.to",
+					description: "x",
+					url: "https://dev.to/someone/from-devto",
+					published_at: "2025-07-23T10:00:00Z",
+					reading_time_minutes: 3,
+					tag_list: [],
+					cover_image: null,
+				},
+			]),
+		);
+
+		const missingPage = await ctx.call("/admin/settings/devto", {
+			method: "PUT",
+			token: ADMIN,
+			json: { enabled: true, url: "" },
+		});
+		expect(missingPage.status).toBe(400);
+
+		await ctx.call("/admin/settings/devto", {
+			method: "PUT",
+			token: ADMIN,
+			json: { enabled: true, url: "https://dev.to/someone" },
+		});
+		expect(await data<unknown[]>(await ctx.call("/articles"))).toHaveLength(1);
+		expect(String(fetchMock.mock.calls.at(-1)?.[0])).toContain("username=someone");
+
+		fetchMock.mockClear();
+		await ctx.call("/admin/settings/devto", {
+			method: "PUT",
+			token: ADMIN,
+			json: { enabled: false, url: "https://dev.to/someone" },
+		});
+		expect(await data<unknown[]>(await ctx.call("/articles"))).toHaveLength(0);
+		expect((await ctx.call("/articles/from-devto")).status).toBe(404);
+		expect(fetchMock).not.toHaveBeenCalled();
+		vi.restoreAllMocks();
+	});
+
 	it("refuses duplicate slugs", async () => {
 		const { call } = setup();
 		await call("/admin/collections/articles", { method: "POST", token: ADMIN, json: article });

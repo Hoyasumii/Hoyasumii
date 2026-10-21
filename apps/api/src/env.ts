@@ -22,5 +22,4 @@ export type Env = {
 	GITHUB_REPOSITORY?: string;
 	/** Fine-grained token with "Contents: read and write" on that repository. */
 	GITHUB_DISPATCH_TOKEN?: string;
-	DEVTO_USERNAME?: string;
 };

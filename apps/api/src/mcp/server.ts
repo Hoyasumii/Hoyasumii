@@ -19,7 +19,7 @@ const collection = z
 	.describe("projects, experience, stack (icon groups), links or articles");
 const settingsKey = z
 	.enum(settingsKeys as [SettingsKey, ...SettingsKey[]])
-	.describe("profile, seo or appearance (accent color and Skill Icons style per theme)");
+	.describe("profile, seo, appearance (accent color and Skill Icons style per theme) or devto (dev.to articles)");
 const fields = z
 	.record(z.string(), z.unknown())
 	.describe("Entry fields, following the schema returned by describe_schema");
@@ -28,7 +28,7 @@ const INSTRUCTIONS = `Edits the content of Alan Reis's portfolio (hoyasumii.dev)
 made here is saved and the site is rebuilt and redeployed by itself in 1-2 minutes.
 
 Content:
-- settings (one document each): profile, seo, appearance.
+- settings (one document each): profile, seo, appearance, devto.
 - collections (ordered lists): projects, experience, stack, links, articles.
 Texts shown on the site are bilingual objects: { "pt": "...", "en": "..." }. Always fill both.
 Stack icons and project stacks use Skill Icons names (ts, react, postgres, ...).
@@ -39,7 +39,8 @@ tint ("accent", a hex color, or "" for the original colors).
 seo holds the site title and description, plus favicon (browser tab icon) and image (cover for shared
 links, 1200x630) as image URLs, keywords and the X handle without "@". Use upload_image_from_url to host
 an image before pointing a field at it.
-Articles are Markdown; unpublished articles stay as drafts.
+Articles are Markdown; unpublished articles stay as drafts. devto turns the listing of dev.to articles
+on or off; when enabled it needs url, the dev.to profile page (https://dev.to/username).
 
 Before creating or changing something, call describe_schema for its exact fields. Use update_entry and
 update_settings to change only some fields: the rest is kept.`;
@@ -124,7 +125,7 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 		"get_settings",
 		{
 			title: "Get settings",
-			description: "A settings document: profile, seo or appearance.",
+			description: "A settings document: profile, seo, appearance or devto.",
 			inputSchema: { key: settingsKey },
 			annotations: readOnly,
 		},
@@ -182,7 +183,7 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 		"update_settings",
 		{
 			title: "Update settings",
-			description: "Changes only the given fields of a settings document (profile, seo or appearance).",
+			description: "Changes only the given fields of a settings document (profile, seo, appearance or devto).",
 			inputSchema: { key: settingsKey, data: fields },
 			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 		},

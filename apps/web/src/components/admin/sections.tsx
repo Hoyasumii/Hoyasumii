@@ -7,6 +7,7 @@ import {
 	contrastRatio,
 	defaultAccent,
 	defaultIconStyles,
+	devtoUsername,
 	type IconStyle,
 	iconLook,
 	inkOn,
@@ -249,7 +250,7 @@ export function ArticlesSection() {
 			name="articles"
 			title="Artigos"
 			noun="artigo"
-			description="Escritos no próprio site. Os do dev.to entram sozinhos a cada publicação."
+			description="Escritos no próprio site. Os do dev.to, quando ativados, entram sozinhos a cada publicação."
 			sortable={false}
 			empty={emptyArticle}
 			label={(item) => item.title || "Sem título"}
@@ -315,6 +316,47 @@ export function ArticlesSection() {
 				</>
 			)}
 		</CollectionEditor>
+	);
+}
+
+/* ------------------------------------------------------------------------- */
+
+export function DevToSection() {
+	return (
+		<SettingsEditor
+			settingsKey="devto"
+			title="dev.to"
+			description="Mostra os artigos publicados no dev.to junto com os do site."
+		>
+			{(value, set) => {
+				const username = devtoUsername({ ...value, enabled: true });
+				return (
+					<>
+						<Toggle
+							label="Mostrar artigos do dev.to"
+							hint="Desligado, o site lista só os artigos escritos aqui no painel."
+							checked={value.enabled}
+							onChange={(enabled) => set({ ...value, enabled })}
+						/>
+						{value.enabled ? (
+							<TextField
+								label="Página no dev.to"
+								type="url"
+								placeholder="https://dev.to/usuario"
+								value={value.url}
+								onChange={(url) => set({ ...value, url: url.trim() })}
+								hint={
+									username
+										? `Artigos de @${username}. Os novos entram a cada publicação do site.`
+										: "O endereço do seu perfil, ex.: https://dev.to/usuario."
+								}
+								required
+							/>
+						) : null}
+					</>
+				);
+			}}
+		</SettingsEditor>
 	);
 }
 
