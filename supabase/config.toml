@@ -1,0 +1,18 @@
+# Minimal config for `supabase start` / `supabase db push`.
+project_id = "portfolio"
+
+[api]
+port = 54321
+
+[db]
+port = 54322
+major_version = 17
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://hoyasumii.dev/admin"]
+# Only the owner signs in; create the user in the dashboard (Authentication → Users).
+enable_signup = false
+
+[auth.email]
+enable_signup = false

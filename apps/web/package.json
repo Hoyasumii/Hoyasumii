@@ -1,0 +1,28 @@
+{
+	"name": "@portfolio/web",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "next dev",
+		"build": "next build",
+		"start": "bunx serve out",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@hoyasumii/skill-icons": "^26.10.3",
+		"@portfolio/shared": "workspace:*",
+		"@supabase/supabase-js": "^2.118.0",
+		"marked": "^18.1.1",
+		"next": "16.4.2",
+		"react": "19.3.1",
+		"react-dom": "19.3.1",
+		"server-only": "^0.0.1"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.5",
+		"@types/react": "^19.3.0",
+		"@types/react-dom": "^19.3.0",
+		"typescript": "^7.0.2"
+	}
+}

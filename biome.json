@@ -1,0 +1,31 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+	"files": {
+		"includes": [
+			"**",
+			"!**/.next",
+			"!**/out",
+			"!**/dist",
+			"!**/.wrangler",
+			"!**/next-env.d.ts",
+			"!README.md",
+			"!README.pt-BR.md"
+		]
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"lineWidth": 120
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"preset": "recommended",
+			"performance": { "noImgElement": "off" },
+			"suspicious": { "noArrayIndexKey": "off" }
+		}
+	},
+	"css": { "parser": { "cssModules": false } },
+	"assist": { "actions": { "source": { "organizeImports": "on" } } }
+}

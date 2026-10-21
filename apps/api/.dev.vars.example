@@ -1,0 +1,10 @@
+# Copy to .dev.vars for `wrangler dev`. Leave Supabase/Upstash empty to use the in-memory
+# adapters; the admin endpoints then accept the token "dev-admin-token".
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+ADMIN_EMAILS=alanreisanjo@gmail.com
+ALLOWED_ORIGINS=http://localhost:3000
+GITHUB_REPOSITORY=Hoyasumii/Hoyasumii
+GITHUB_DISPATCH_TOKEN=

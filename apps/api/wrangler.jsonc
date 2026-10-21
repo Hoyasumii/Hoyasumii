@@ -1,0 +1,19 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "portfolio-api",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-10-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"observability": { "enabled": true },
+	// Plain settings. Secrets (SUPABASE_SERVICE_ROLE_KEY, UPSTASH_REDIS_REST_TOKEN,
+	// GITHUB_DISPATCH_TOKEN, ...) are set with `wrangler secret put` or by the deploy workflow.
+	"vars": {
+		"SUPABASE_STORAGE_BUCKET": "media",
+		"DEVTO_USERNAME": "hoyasumii",
+		"GITHUB_REPOSITORY": "Hoyasumii/Hoyasumii",
+		"ALLOWED_ORIGINS": "https://hoyasumii.dev,http://localhost:3000",
+		"ADMIN_EMAILS": "alanreisanjo@gmail.com"
+	}
+	// To serve the API from your own domain, add for example:
+	// "routes": [{ "pattern": "api.hoyasumii.dev", "custom_domain": true }]
+}

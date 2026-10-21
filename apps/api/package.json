@@ -1,0 +1,26 @@
+{
+	"name": "@portfolio/api",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy --minify",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit",
+		"seed": "bun scripts/seed.ts"
+	},
+	"dependencies": {
+		"@portfolio/shared": "workspace:*",
+		"@supabase/supabase-js": "^2.118.0",
+		"@upstash/redis": "^1.39.0",
+		"hono": "^4.13.13",
+		"zod": "^4.6.7"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^5.20261021.1",
+		"typescript": "^7.0.2",
+		"vitest": "^5.0.5",
+		"wrangler": "^4.151.3"
+	}
+}
