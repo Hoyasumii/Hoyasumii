@@ -47,7 +47,8 @@ export function createApp(resolveDeps: (env: Env) => Deps) {
 		if (error instanceof HTTPException) {
 			return c.json({ error: { code: "http_error", message: error.message } }, error.status);
 		}
-		console.error(error);
+		// Message first: Workers logs keep the first argument whole but may cut the stack.
+		console.error(`${c.req.method} ${c.req.path} failed: ${error.message}`, error);
 		return c.json({ error: { code: "internal_error", message: "Something went wrong" } }, 500);
 	});
 

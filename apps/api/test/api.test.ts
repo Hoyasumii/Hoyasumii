@@ -56,6 +56,27 @@ describe("public content", () => {
 	});
 });
 
+describe("health", () => {
+	it("reports the adapters in use", async () => {
+		const { call } = setup();
+		const response = await call("/health");
+		expect(response.status).toBe(200);
+		expect(await data(response)).toEqual({
+			ok: true,
+			database: { adapter: "memory", ok: true },
+			cache: { adapter: "memory", ok: true },
+		});
+	});
+
+	it("answers 503 with the reason when the database fails", async () => {
+		const { call, repository } = setup();
+		vi.spyOn(repository, "lastUpdatedAt").mockRejectedValue(new Error("Invalid API key"));
+		const response = await call("/health");
+		expect(response.status).toBe(503);
+		expect(await data(response)).toMatchObject({ ok: false, database: { ok: false, error: "Invalid API key" } });
+	});
+});
+
 describe("admin auth", () => {
 	it("rejects requests without a token", async () => {
 		const { call } = setup();
