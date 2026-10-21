@@ -5,6 +5,7 @@ import {
 	buildDefaultContent,
 	type Content,
 	createPortfolioClient,
+	normalizeContent,
 } from "@portfolio/shared";
 
 /**
@@ -19,7 +20,9 @@ let contentPromise: Promise<Content> | undefined;
 let articlesPromise: Promise<ArticleSummary[]> | undefined;
 
 export function getContent(): Promise<Content> {
-	contentPromise ??= client ? client.getContent() : Promise.resolve(buildDefaultContent());
+	// Normalized here too, so content from an API that is older or newer than this build
+	// (or a stale cache) still has every field the pages read.
+	contentPromise ??= (client ? client.getContent() : Promise.resolve(buildDefaultContent())).then(normalizeContent);
 	return contentPromise;
 }
 

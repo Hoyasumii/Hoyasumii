@@ -1,3 +1,5 @@
+import { CONTENT_VERSION } from "@portfolio/shared";
+
 /** Small key/value cache with TTLs. Upstash Redis in production, memory for dev/tests. */
 export interface Cache {
 	get<T>(key: string): Promise<T | null>;
@@ -6,7 +8,7 @@ export interface Cache {
 }
 
 export const cacheKeys = {
-	content: "portfolio:content:v1",
+	content: `portfolio:content:v${CONTENT_VERSION}`,
 	siteArticles: "portfolio:site-articles:v1",
 	devtoArticles: "portfolio:devto-articles:v1",
 	devtoArticle: (slug: string) => `portfolio:devto-article:v1:${slug}`,

@@ -1,4 +1,11 @@
-import type { Appearance, ArticleSummary, Content, Locale, Project } from "@portfolio/shared";
+import {
+	type Appearance,
+	type ArticleSummary,
+	type Content,
+	iconLook,
+	type Locale,
+	type Project,
+} from "@portfolio/shared";
 import { notFound } from "next/navigation";
 import { ArticleList } from "@/components/site/article-list";
 import { ProjectCover } from "@/components/site/project-cover";
@@ -272,7 +279,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
 				{content.stack.length > 0 ? (
 					<Section id="stack" number={numberOf("stack")} label={d.stack}>
-						{appearance.icons.light.tint || appearance.icons.dark.tint ? <p className="hint">{d.hoverHint}</p> : null}
+						{iconLook(appearance, "light").tint || iconLook(appearance, "dark").tint ? (
+							<p className="hint">{d.hoverHint}</p>
+						) : null}
 						<dl className="stack">
 							{content.stack.map((group) => (
 								<div key={group.id} className="stack__group">
