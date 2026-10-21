@@ -1,4 +1,4 @@
-import type { Locale, Profile } from "@portfolio/shared";
+import { type Locale, locales, type Profile } from "@portfolio/shared";
 import Link from "next/link";
 import type { Dictionary } from "@/lib/i18n";
 import { LocalClock } from "./local-clock";
@@ -18,8 +18,6 @@ type Props = {
 };
 
 export function SiteHeader({ profile, locale, nav, d, path = "", anchorBase = "" }: Props) {
-	const otherLocale: Locale = locale === "pt" ? "en" : "pt";
-
 	return (
 		<header className="topbar">
 			<Link href={`/${locale}/`} className="topbar__brand">
@@ -37,9 +35,26 @@ export function SiteHeader({ profile, locale, nav, d, path = "", anchorBase = ""
 				))}
 			</nav>
 			<div className="topbar__tools">
-				<Link href={`/${otherLocale}/${path}`} hrefLang={otherLocale} className="topbar__lang" title={d.switchTo}>
-					{otherLocale.toUpperCase()}
-				</Link>
+				<nav className="lang-switch" aria-label={d.language}>
+					{locales.map((code) =>
+						code === locale ? (
+							<span key={code} className="lang-switch__item is-current" aria-current="true">
+								{code.toUpperCase()}
+							</span>
+						) : (
+							<Link
+								key={code}
+								href={`/${code}/${path}`}
+								hrefLang={code}
+								lang={code === "pt" ? "pt-BR" : "en"}
+								className="lang-switch__item"
+								title={d.switchTo}
+							>
+								{code.toUpperCase()}
+							</Link>
+						),
+					)}
+				</nav>
 				<ThemeToggle label={d.theme} />
 			</div>
 		</header>

@@ -87,7 +87,13 @@ export const adminRoutes = new Hono<AppEnv>()
 	.use(requireAdmin)
 	.get("/me", (c) => c.json({ data: c.get("user") }))
 	.post("/publish", async (c) => {
-		await c.get("deps").publisher.publish(`manual publish by ${c.get("user").email}`);
+		try {
+			await c.get("deps").publisher.publish(`manual publish by ${c.get("user").email}`);
+		} catch (error) {
+			// Only the signed-in owner sees this, and the reason (token scope, repo name) is what they need.
+			const reason = error instanceof Error ? error.message : String(error);
+			throw new HttpError(502, "publish_failed", `GitHub refused the rebuild: ${reason}`);
+		}
 		return c.json({ data: { queued: true } }, 202);
 	})
 

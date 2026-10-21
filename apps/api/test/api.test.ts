@@ -2,6 +2,7 @@ import { type Content, defaultCollections, type Project, type SiteArticle } from
 import { describe, expect, it, vi } from "vitest";
 import { describeError } from "../src/repositories/supabase";
 import { SupabaseTokenVerifier } from "../src/services/auth";
+import { GitHubDispatchPublisher } from "../src/services/publisher";
 import { ADMIN, data, flush, STRANGER, setup } from "./helpers";
 
 const project = {
@@ -293,5 +294,26 @@ describe("supabase token verifier", () => {
 	it("rejects accounts whose email was never confirmed", async () => {
 		const user = { id: "1", email: "owner@example.com", email_confirmed_at: null };
 		expect(await verifierFor(user).verify("t")).toBeNull();
+	});
+});
+
+describe("publish", () => {
+	it("explains why GitHub refused the rebuild", async () => {
+		const { call, deps } = setup();
+		vi.spyOn(deps.publisher, "publish").mockRejectedValue(
+			new Error("403 Resource not accessible by personal access token"),
+		);
+		const response = await call("/admin/publish", { method: "POST", token: ADMIN });
+		expect(response.status).toBe(502);
+		const body = (await response.json()) as { error: { code: string; message: string } };
+		expect(body.error.code).toBe("publish_failed");
+		expect(body.error.message).toContain("403 Resource not accessible");
+	});
+
+	it("adds a hint for the usual token mistakes", async () => {
+		const fetcher = async () =>
+			Response.json({ message: "Resource not accessible by personal access token" }, { status: 403 });
+		const publisher = new GitHubDispatchPublisher("owner/repo", "token", fetcher as typeof fetch);
+		await expect(publisher.publish("test")).rejects.toThrow(/403 Resource not accessible.*Contents: Read and write/);
 	});
 });

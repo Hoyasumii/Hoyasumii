@@ -172,13 +172,34 @@ button {
 }
 
 .topbar__nav a,
-.topbar__lang {
+.topbar__nav a:hover {
+	color: var(--accent);
+}
+
+/* PT / EN: the current language is solid, the other one is a link. */
+.lang-switch {
+	display: flex;
+	align-items: center;
+}
+
+.lang-switch__item {
+	padding: 2px 4px;
+	color: var(--muted);
 	transition: color 0.15s;
 }
 
-.topbar__nav a:hover,
-.topbar__lang:hover {
+.lang-switch__item + .lang-switch__item::before {
+	content: "/";
+	margin-right: 8px;
+	color: var(--rule);
+}
+
+a.lang-switch__item:hover {
 	color: var(--accent);
+}
+
+.lang-switch__item.is-current {
+	color: var(--ink);
 }
 
 .topbar__tools {
