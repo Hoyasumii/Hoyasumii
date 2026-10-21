@@ -317,3 +317,20 @@ describe("publish", () => {
 		await expect(publisher.publish("test")).rejects.toThrow(/403 Resource not accessible.*Contents: Read and write/);
 	});
 });
+
+describe("github dispatch publisher", () => {
+	it("calls fetch unbound, as Workers require", async () => {
+		const original = globalThis.fetch;
+		let receiver: unknown = "not called";
+		globalThis.fetch = function (this: unknown) {
+			receiver = this;
+			return Promise.resolve(new Response(null, { status: 204 }));
+		} as typeof fetch;
+		try {
+			await new GitHubDispatchPublisher("owner/repo", "token").publish("test");
+		} finally {
+			globalThis.fetch = original;
+		}
+		expect(receiver).toBeUndefined();
+	});
+});
