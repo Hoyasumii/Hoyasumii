@@ -1,5 +1,6 @@
 import { type Content, defaultCollections, type Project, type SiteArticle } from "@portfolio/shared";
 import { describe, expect, it, vi } from "vitest";
+import { describeError } from "../src/repositories/supabase";
 import { ADMIN, data, flush, STRANGER, setup } from "./helpers";
 
 const project = {
@@ -263,5 +264,16 @@ describe("media", () => {
 		const text = new FormData();
 		text.set("file", new File(["hi"], "a.txt", { type: "text/plain" }));
 		expect((await call("/admin/media", { method: "POST", token: ADMIN, body: text })).status).toBe(400);
+	});
+});
+
+describe("supabase errors", () => {
+	it("keeps every detail Supabase returns", () => {
+		expect(describeError({ message: "Invalid API key", hint: "Double check your API key." })).toBe(
+			"Invalid API key · Double check your API key.",
+		);
+		expect(describeError({ code: "PGRST205" })).toBe("code PGRST205");
+		expect(describeError({} as never)).toBe("{}");
+		expect(describeError(null)).toBe("no data returned");
 	});
 });
