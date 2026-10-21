@@ -1,3 +1,9 @@
+const HINTS: Record<number, string> = {
+	401: " (GH_DISPATCH_TOKEN is invalid or expired)",
+	403: ' (the token needs "Contents: Read and write" on the repository)',
+	404: " (the token cannot see GITHUB_REPOSITORY, or the name is wrong)",
+};
+
 /** Rebuilds the static website after the content changes. */
 export interface Publisher {
 	publish(reason: string): Promise<void>;
@@ -26,7 +32,10 @@ export class GitHubDispatchPublisher implements Publisher {
 			},
 			body: JSON.stringify({ event_type: "content-updated", client_payload: { reason } }),
 		});
-		if (!response.ok) throw new Error(`GitHub dispatch responded ${response.status}: ${await response.text()}`);
+		if (!response.ok) {
+			const body = (await response.json().catch(() => null)) as { message?: string } | null;
+			throw new Error(`${response.status} ${body?.message ?? response.statusText}${HINTS[response.status] ?? ""}`);
+		}
 	}
 }
 
