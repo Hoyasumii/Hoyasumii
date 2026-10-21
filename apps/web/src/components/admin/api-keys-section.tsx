@@ -1,6 +1,6 @@
 "use client";
 
-import type { ApiKey, ApiKeyScope, CreatedApiKey } from "@portfolio/shared";
+import type { ApiKey, ApiKeyScope, CreatedApiKey, OAuthConnection } from "@portfolio/shared";
 import { useCallback, useEffect, useState } from "react";
 import { errorMessage, useAdmin } from "./context";
 import { TextField } from "./fields";
@@ -61,6 +61,67 @@ function NewKey({ created, onClose }: { created: CreatedApiKey; onClose: () => v
 				Já copiei, fechar
 			</button>
 		</div>
+	);
+}
+
+/** Apps authorized through OAuth, like the claude.ai connector. */
+function Connections() {
+	const { api, notify } = useAdmin();
+	const [connections, setConnections] = useState<OAuthConnection[] | null>(null);
+
+	const load = useCallback(async () => {
+		try {
+			setConnections(await api.listConnections());
+		} catch (error) {
+			notify(errorMessage(error), "error");
+		}
+	}, [api, notify]);
+
+	useEffect(() => {
+		load();
+	}, [load]);
+
+	async function revoke(connection: OAuthConnection) {
+		if (!window.confirm(`Desconectar "${connection.clientName}"? Ele perde o acesso na hora.`)) return;
+		try {
+			await api.revokeConnection(connection.id);
+			notify("App desconectado.", "success");
+			await load();
+		} catch (error) {
+			notify(errorMessage(error), "error");
+		}
+	}
+
+	const endpoint = `${apiUrl.replace(/\/$/, "")}/mcp`;
+
+	return (
+		<>
+			<h2 className="field__label keys__heading">Apps conectados (OAuth)</h2>
+			<p className="field__hint">
+				Para o claude.ai (web e app): Settings → Connectors → Add custom connector, com a URL <code>{endpoint}</code>.
+				Você autoriza numa página própria, com seu e-mail e senha.
+			</p>
+			{connections === null ? <p className="empty">Carregando…</p> : null}
+			{connections?.length === 0 ? <p className="empty">Nenhum app conectado.</p> : null}
+			{connections && connections.length > 0 ? (
+				<ul className="keys">
+					{connections.map((connection) => (
+						<li key={connection.id} className="keys__item">
+							<div>
+								<p className="keys__name">{connection.clientName}</p>
+								<p className="keys__meta">
+									{connection.redirectHost ?? "app"} · {connection.scope === "write" ? "ler e editar" : "só ler"} ·
+									conectado {when(connection.createdAt)}
+								</p>
+							</div>
+							<button type="button" className="button button--danger" onClick={() => revoke(connection)}>
+								Desconectar
+							</button>
+						</li>
+					))}
+				</ul>
+			) : null}
+		</>
 	);
 }
 
@@ -198,6 +259,8 @@ export function ApiKeysSection() {
 					</ul>
 				</details>
 			) : null}
+
+			<Connections />
 		</section>
 	);
 }

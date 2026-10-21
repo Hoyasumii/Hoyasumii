@@ -3,11 +3,17 @@
 	"name": "portfolio-api",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-10-01",
-	"compatibility_flags": ["nodejs_compat"],
+	// global_fetch_strictly_public: the OAuth server fetches client metadata documents (CIMD) from
+	// client-chosen URLs, so outbound fetches must never reach private addresses.
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
 	"observability": { "enabled": true },
+	// OAuth grants, tokens and clients for MCP connectors. Without an id, `wrangler deploy` creates
+	// the namespace on first deploy and keeps using it.
+	"kv_namespaces": [{ "binding": "OAUTH_KV" }],
 	// Plain settings. Secrets (SUPABASE_SERVICE_ROLE_KEY, UPSTASH_REDIS_REST_TOKEN,
 	// GITHUB_DISPATCH_TOKEN, ...) are set with `wrangler secret put` or by the deploy workflow.
 	"vars": {
+		"PUBLIC_API_URL": "https://portfolio-api.alanreisanjo.workers.dev",
 		"SUPABASE_STORAGE_BUCKET": "media",
 		"DEVTO_USERNAME": "hoyasumii",
 		"GITHUB_REPOSITORY": "Hoyasumii/Hoyasumii",

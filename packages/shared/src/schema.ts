@@ -214,3 +214,13 @@ export type ApiKey = {
 };
 
 export type CreatedApiKey = { apiKey: ApiKey; key: string };
+
+/** An app authorized through OAuth to use the MCP server (e.g. the claude.ai connector). */
+export type OAuthConnection = {
+	id: string;
+	clientName: string;
+	scope: ApiKeyScope;
+	/** Where its tokens are sent, e.g. claude.ai. */
+	redirectHost: string | null;
+	createdAt: string;
+};

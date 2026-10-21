@@ -1,4 +1,4 @@
-import { apiKeyCreateSchema, reorderSchema } from "@portfolio/shared";
+import { apiKeyCreateSchema, type OAuthConnection, reorderSchema } from "@portfolio/shared";
 import { type Context, Hono } from "hono";
 import type { ZodType, z } from "zod";
 import type { AppEnv } from "../app";
@@ -31,6 +31,39 @@ const apiKeyRoutes = new Hono<AppEnv>()
 		return c.json({ data: key });
 	});
 
+/** Apps authorized with OAuth (MCP connectors), from the OAuth server's grants for the owner. */
+const connectionRoutes = new Hono<AppEnv>()
+	.use(requireSession)
+	.get("/", async (c) => {
+		const oauth = c.env?.OAUTH_PROVIDER;
+		const user = c.get("user");
+		if (!oauth || user.via !== "session") return c.json({ data: [] });
+
+		const connections: OAuthConnection[] = [];
+		let cursor: string | undefined;
+		do {
+			const page = await oauth.listUserGrants(encodeURIComponent(user.id), { cursor });
+			for (const grant of page.items) {
+				connections.push({
+					id: grant.id,
+					clientName: grant.metadata?.clientName ?? "MCP connector",
+					scope: grant.scope.includes("mcp:write") ? "write" : "read",
+					redirectHost: grant.redirectUri ? new URL(grant.redirectUri).host : null,
+					createdAt: new Date(grant.createdAt * 1000).toISOString(),
+				});
+			}
+			cursor = page.cursor;
+		} while (cursor);
+		return c.json({ data: connections.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) });
+	})
+	.delete("/:id", async (c) => {
+		const oauth = c.env?.OAUTH_PROVIDER;
+		const user = c.get("user");
+		if (!oauth || user.via !== "session") throw notFound("Connection");
+		await oauth.revokeGrant(c.req.param("id"), encodeURIComponent(user.id));
+		return c.json({ data: { id: c.req.param("id") } });
+	});
+
 export const adminRoutes = new Hono<AppEnv>()
 	.use(requireAdmin)
 	.get("/me", (c) => c.json({ data: c.get("user") }))
@@ -39,6 +72,7 @@ export const adminRoutes = new Hono<AppEnv>()
 		return c.json({ data: { queued: true } }, 202);
 	})
 	.route("/api-keys", apiKeyRoutes)
+	.route("/connections", connectionRoutes)
 
 	.get("/settings/:key", async (c) => {
 		const key = c.req.param("key");

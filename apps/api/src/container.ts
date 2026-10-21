@@ -54,6 +54,8 @@ export function assemble(
 
 /** Development token accepted when the API runs without Supabase (`wrangler dev` with no secrets). */
 export const DEV_TOKEN = "dev-admin-token";
+/** Password for dev@localhost on the OAuth consent page, in the same mode. */
+export const DEV_PASSWORD = "dev";
 
 let memoryAdapters: Adapters | undefined;
 let cached: { env: Env; deps: Deps } | undefined;
@@ -70,14 +72,16 @@ export function depsFromEnv(env: Env): Deps {
 
 	let adapters: Adapters;
 	if (hasSupabase) {
-		const supabase = createClient(env.SUPABASE_URL as string, env.SUPABASE_SERVICE_ROLE_KEY as string, {
-			auth: { persistSession: false, autoRefreshToken: false },
-		});
+		const connect = () =>
+			createClient(env.SUPABASE_URL as string, env.SUPABASE_SERVICE_ROLE_KEY as string, {
+				auth: { persistSession: false, autoRefreshToken: false },
+			});
+		const supabase = connect();
 		adapters = {
 			repository: new SupabaseContentRepository(supabase),
 			apiKeyRepository: new SupabaseApiKeyRepository(supabase),
 			storage: new SupabaseMediaStorage(supabase, env.SUPABASE_STORAGE_BUCKET ?? "media"),
-			verifier: new SupabaseTokenVerifier(supabase),
+			verifier: new SupabaseTokenVerifier(supabase, connect),
 			cache: new MemoryCache(),
 			publisher: new NoopPublisher(),
 		};
@@ -86,7 +90,10 @@ export function depsFromEnv(env: Env): Deps {
 			repository: new MemoryContentRepository(),
 			apiKeyRepository: new MemoryApiKeyRepository(),
 			storage: new MemoryMediaStorage(),
-			verifier: new StaticTokenVerifier({ [DEV_TOKEN]: { id: "dev", email: "dev@localhost" } }),
+			verifier: new StaticTokenVerifier(
+				{ [DEV_TOKEN]: { id: "dev", email: "dev@localhost" } },
+				{ "dev@localhost": DEV_PASSWORD },
+			),
 			cache: new MemoryCache(),
 			publisher: new NoopPublisher(),
 		};

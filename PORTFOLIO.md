@@ -42,6 +42,12 @@ Uma IA (ou um script) pode editar o site com as mesmas regras do painel: valida�
 
 Ferramentas: `get_site_content`, `describe_schema`, `list_entries`, `get_entry`, `get_settings` e, com permissão de escrita, `create_entry`, `update_entry` (altera só os campos enviados), `delete_entry`, `reorder_entries`, `update_settings`, `upload_image_from_url` e `publish_site`. Uma chave "Só ler" não recebe as ferramentas de escrita.
 
+### Conector do claude.ai (OAuth)
+
+O claude.ai (web e app) conecta por OAuth, não por chave. Em **Settings → Connectors → Add custom connector**, use a URL `https://portfolio-api.alanreisanjo.workers.dev/mcp`. O claude.ai se registra sozinho no servidor OAuth da API e abre a página _Autorizar acesso_: entre com o e-mail e a senha do Supabase, escolha **Ler e editar** ou **Só ler** e clique em **Permitir**.
+
+Os apps conectados aparecem em _Painel → Chaves de API → Apps conectados_, onde dá para desconectar. Os grants e tokens ficam no KV `OAUTH_KV`, criado pelo `wrangler deploy`; `PUBLIC_API_URL` (em `wrangler.jsonc`) precisa ser o endereço público da API.
+
 As mesmas chaves funcionam na API HTTP (`/admin/*`). Criar e revogar chaves exige o login do painel, então uma chave vazada não cria outras; revogar tem efeito imediato.
 
 ## Desenvolvimento

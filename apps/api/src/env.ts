@@ -1,5 +1,13 @@
 /** Worker bindings. Secrets are set with `wrangler secret put`, plain vars in wrangler.jsonc. */
+import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
+
 export type Env = {
+	/** Grants, tokens and registered clients of the OAuth server (MCP connectors). */
+	OAUTH_KV?: KVNamespace;
+	/** Public address of this API, e.g. https://portfolio-api.example.workers.dev (OAuth issuer and resource). */
+	PUBLIC_API_URL?: string;
+	/** Injected by OAuthProvider into the handlers it calls. */
+	OAUTH_PROVIDER?: OAuthHelpers;
 	SUPABASE_URL?: string;
 	/** Service role (or secret) key: the API is the only writer, so RLS stays closed to clients. */
 	SUPABASE_SERVICE_ROLE_KEY?: string;
