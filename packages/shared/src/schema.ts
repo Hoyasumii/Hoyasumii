@@ -39,6 +39,16 @@ export const profileSchema = z.object({
 export const seoSchema = z.object({
 	title: z.string(),
 	description: localized,
+	/** Browser tab icon. Empty keeps the site's built-in favicon. */
+	favicon: optionalUrl.default(""),
+	/** Cover shown when a link to the site is shared (Open Graph and X cards); 1200×630 works best. */
+	image: optionalUrl.default(""),
+	keywords: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
+	/** X (Twitter) handle, without "@". */
+	twitter: z
+		.string()
+		.regex(/^[A-Za-z0-9_]{0,15}$/, "Use the handle without @")
+		.default(""),
 });
 
 const hexColor = z.string().regex(/^[0-9a-f]{6}$/, "Use 6 hex digits without #");
@@ -216,7 +226,7 @@ export type Content = Settings & Pick<Collections, ContentCollectionName> & { up
  * Version of the Content shape. Bump it whenever settings or collections change shape: cached
  * copies (Upstash) are keyed by it, so a deploy never serves a document in the old shape.
  */
-export const CONTENT_VERSION = 3;
+export const CONTENT_VERSION = 4;
 
 /** Brings every settings document of a Content to the current shape (see normalizeSettings). */
 export function normalizeContent(content: Content): Content {

@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
+import { getContent } from "@/lib/data";
 import { fontClasses } from "@/lib/fonts";
+import { siteIcons } from "@/lib/seo";
 import { themeScript } from "@/lib/theme";
 import "./site.css";
 import { InlineScript } from "@/components/inline-script";
 
-export const metadata: Metadata = {
-	title: "404 — Alan Reis",
-	robots: { index: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const { seo } = await getContent();
+	return { title: "404 — Alan Reis", robots: { index: false }, icons: siteIcons(seo) };
+}
 
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 

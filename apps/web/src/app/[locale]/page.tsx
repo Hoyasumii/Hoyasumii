@@ -174,6 +174,42 @@ function ProjectTable({
 	);
 }
 
+/** Structured data (schema.org) so search engines know who the site is about. */
+function JsonLd({ content, locale }: { content: Content; locale: Locale }) {
+	const { profile, seo } = content;
+	const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+	const url = `${site}/${locale}/`;
+	const data = {
+		"@context": "https://schema.org",
+		"@graph": [
+			{
+				"@type": "WebSite",
+				name: seo.title,
+				description: t(seo.description, locale),
+				url,
+				inLanguage: locale === "pt" ? "pt-BR" : "en",
+				image: seo.image || undefined,
+			},
+			{
+				"@type": "Person",
+				name: profile.name,
+				alternateName: profile.handle || undefined,
+				jobTitle: t(profile.role, locale),
+				description: t(profile.headline, locale),
+				image: profile.avatar || undefined,
+				email: `mailto:${profile.email}`,
+				url,
+				address: profile.location ? { "@type": "PostalAddress", addressLocality: profile.location } : undefined,
+				sameAs: content.links.map((link) => link.url).filter((href) => /^https?:\/\//.test(href)),
+			},
+		],
+	};
+	// "<" is escaped so no value can close the script tag.
+	const json = JSON.stringify(data).replace(/</g, "\\u003c");
+	// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON with "<" escaped, rendered at build time
+	return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: json }} />;
+}
+
 function sections(content: Content, articles: ArticleSummary[], d: Dictionary): NavItem[] {
 	const list: NavItem[] = [
 		{ id: "about", label: d.about },
@@ -202,6 +238,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
 	return (
 		<>
+			<JsonLd content={content} locale={locale} />
 			<SiteHeader profile={profile} locale={locale} nav={nav} d={d} />
 
 			<main id="top">

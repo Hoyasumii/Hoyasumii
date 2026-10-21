@@ -4,7 +4,8 @@ import { ArticleList } from "@/components/site/article-list";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { getArticles, getContent } from "@/lib/data";
-import { dict, isLocale } from "@/lib/i18n";
+import { dict, isLocale, t } from "@/lib/i18n";
+import { shareImages, twitterCard } from "@/lib/seo";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -12,7 +13,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	const { locale } = await params;
 	if (!isLocale(locale)) return {};
 	const { seo } = await getContent();
-	return { title: `${dict(locale).writing} — ${seo.title}`, alternates: { canonical: `/${locale}/articles/` } };
+	const title = `${dict(locale).writing} — ${seo.title}`;
+	const description = t(seo.description, locale);
+	return {
+		title,
+		alternates: { canonical: `/${locale}/articles/` },
+		openGraph: { title, description, url: `/${locale}/articles/`, type: "website", images: shareImages(seo) },
+		twitter: twitterCard(seo, { title, description }),
+	};
 }
 
 export default async function ArticlesPage({ params }: Props) {

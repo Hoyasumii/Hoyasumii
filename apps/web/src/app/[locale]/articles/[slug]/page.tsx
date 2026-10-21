@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { getArticle, getArticles, getContent } from "@/lib/data";
 import { dict, isLocale, locales } from "@/lib/i18n";
 import { renderMarkdown } from "@/lib/markdown";
+import { shareImages, twitterCard } from "@/lib/seo";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -28,7 +29,7 @@ async function load(slug: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	const { locale, slug } = await params;
-	const article = await load(slug);
+	const [{ seo }, article] = await Promise.all([getContent(), load(slug)]);
 	if (!article || !isLocale(locale)) return { robots: { index: false } };
 	return {
 		title: article.title,
@@ -40,8 +41,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 			description: article.excerpt,
 			publishedTime: article.publishedAt,
 			tags: article.tags,
-			images: article.cover ? [{ url: article.cover }] : undefined,
+			images: shareImages(seo, article.cover, article.title),
 		},
+		twitter: twitterCard(seo, { title: article.title, description: article.excerpt, cover: article.cover }),
 	};
 }
 

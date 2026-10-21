@@ -119,6 +119,10 @@ export const defaultSettings: Settings = {
 			en: "Fullstack developer from Aracaju, Brazil. TypeScript, Bun and Elysia; headless CMS, typed SDKs and MCP servers.",
 			pt: "Desenvolvedor fullstack de Aracaju. TypeScript, Bun e Elysia; CMS headless, SDKs tipados e servidores MCP.",
 		},
+		favicon: "",
+		image: "",
+		keywords: ["TypeScript", "Bun", "Elysia", "fullstack", "MCP"],
+		twitter: "",
 	},
 	appearance: {
 		accent: { light: "d4441c", dark: "ff6a3d" },

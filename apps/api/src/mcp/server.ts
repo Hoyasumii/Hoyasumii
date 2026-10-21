@@ -36,6 +36,9 @@ The accent color (appearance.accent) has a light and a dark variant, as 6 hex di
 keep each readable on its theme's background (#ebe9e3 light, #0e0e0d dark).
 appearance.icons sets, for each theme of the site, the Skill Icons variant ("light" or "dark" tile) and
 tint ("accent", a hex color, or "" for the original colors).
+seo holds the site title and description, plus favicon (browser tab icon) and image (cover for shared
+links, 1200x630) as image URLs, keywords and the X handle without "@". Use upload_image_from_url to host
+an image before pointing a field at it.
 Articles are Markdown; unpublished articles stay as drafts.
 
 Before creating or changing something, call describe_schema for its exact fields. Use update_entry and
