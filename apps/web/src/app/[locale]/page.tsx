@@ -1,6 +1,7 @@
 import type { ArticleSummary, Content, Locale, Project } from "@portfolio/shared";
 import { notFound } from "next/navigation";
 import { ArticleList } from "@/components/site/article-list";
+import { ProjectCover } from "@/components/site/project-cover";
 import { RotatingBadge } from "@/components/site/rotating-badge";
 import { SiteFooter } from "@/components/site/site-footer";
 import { type NavItem, SiteHeader } from "@/components/site/site-header";
@@ -69,6 +70,15 @@ function FeaturedProject({
 					{t(project.kind, locale)} — {project.year}
 				</span>
 			</div>
+			{project.cover ? (
+				<ProjectCover
+					src={project.cover}
+					alt={`${d.coverOf} ${project.name}`}
+					caption={`fig. ${pad(index)} — ${project.name}`}
+					variant="feature"
+					eager={index === 1}
+				/>
+			) : null}
 			<div className="feature__body">
 				<p className="feature__summary">{t(project.summary, locale)}</p>
 				{project.stack.length > 0 ? (
@@ -136,15 +146,20 @@ function ProjectTable({
 						<span className="ledger__toggle" aria-hidden="true" />
 					</summary>
 					<div className="ledger__detail">
-						<p>{t(project.summary, locale)}</p>
-						{project.stack.length > 0 ? (
-							<div className="icon-row">
-								{project.stack.map((name) => (
-									<TechIcon key={name} name={name} tint={tint} size={28} />
-								))}
-							</div>
+						{project.cover ? (
+							<ProjectCover src={project.cover} alt={`${d.coverOf} ${project.name}`} variant="thumb" />
 						) : null}
-						<ProjectLinks project={project} d={d} />
+						<div className="ledger__text">
+							<p>{t(project.summary, locale)}</p>
+							{project.stack.length > 0 ? (
+								<div className="icon-row">
+									{project.stack.map((name) => (
+										<TechIcon key={name} name={name} tint={tint} size={28} />
+									))}
+								</div>
+							) : null}
+							<ProjectLinks project={project} d={d} />
+						</div>
 					</div>
 				</details>
 			))}
