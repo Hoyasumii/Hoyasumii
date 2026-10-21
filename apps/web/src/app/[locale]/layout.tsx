@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getContent } from "@/lib/data";
 import { fontClasses } from "@/lib/fonts";
 import { isLocale, locales, t } from "@/lib/i18n";
+import { shareImages, siteIcons, twitterCard } from "@/lib/seo";
 import { themeScript } from "@/lib/theme";
 import "../site.css";
 import { AccentStyle } from "@/components/accent-style";
@@ -19,23 +20,31 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 	if (!isLocale(locale)) return {};
 	const { seo, profile } = await getContent();
 	const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+	const description = t(seo.description, locale);
 
 	return {
 		metadataBase: new URL(siteUrl),
 		title: seo.title,
-		description: t(seo.description, locale),
+		description,
+		keywords: seo.keywords.length > 0 ? seo.keywords : undefined,
+		authors: [{ name: profile.name, url: siteUrl }],
+		creator: profile.name,
+		icons: siteIcons(seo),
 		alternates: {
 			canonical: `/${locale}`,
 			languages: { "pt-BR": "/pt", en: "/en" },
 		},
 		openGraph: {
 			title: seo.title,
-			description: t(seo.description, locale),
+			description,
 			url: `/${locale}`,
 			siteName: profile.name,
 			locale: locale === "pt" ? "pt_BR" : "en_US",
+			alternateLocale: locale === "pt" ? "en_US" : "pt_BR",
 			type: "website",
+			images: shareImages(seo),
 		},
+		twitter: twitterCard(seo, { title: seo.title, description }),
 	};
 }
 

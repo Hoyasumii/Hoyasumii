@@ -13,6 +13,7 @@ import {
 	type Localized,
 	MIN_ACCENT_CONTRAST,
 	PAPER,
+	type Seo,
 } from "@portfolio/shared";
 import { iconUrl, parseTint, TINT_SWATCHES } from "@/lib/icons";
 import { CollectionEditor } from "./collection-editor";
@@ -686,20 +687,100 @@ export function AppearanceSection() {
 
 /* ------------------------------------------------------------------------- */
 
+const SITE_HOST = (process.env.NEXT_PUBLIC_SITE_URL ?? "hoyasumii.dev").replace(/^https?:\/\//, "").replace(/\/$/, "");
+
+/** How a link to the site looks when shared, with the browser tab above it. */
+function SharePreview({ seo }: { seo: Seo }) {
+	return (
+		<div className="share-previews">
+			<div className="tab-preview">
+				{seo.favicon ? (
+					<img src={seo.favicon} alt="" width={16} height={16} />
+				) : (
+					<span className="tab-preview__fallback" aria-hidden="true" />
+				)}
+				<span className="tab-preview__title">{seo.title || "Sem título"}</span>
+			</div>
+			<div className="share-preview">
+				{seo.image ? (
+					<img src={seo.image} alt="" className="share-preview__image" />
+				) : (
+					<div className="share-preview__image share-preview__image--empty">Sem capa</div>
+				)}
+				<div className="share-preview__text">
+					<span className="share-preview__host">{SITE_HOST}</span>
+					<strong className="share-preview__title">{seo.title || "Sem título"}</strong>
+					<span className="share-preview__description">{seo.description.pt}</span>
+				</div>
+			</div>
+		</div>
+	);
+}
+
 export function SeoSection() {
 	return (
-		<SettingsEditor settingsKey="seo" title="SEO" description="Título e descrição para buscadores e prévias de link.">
-			{(value, set) => (
-				<>
-					<TextField label="Título" value={value.title} onChange={(title) => set({ ...value, title })} />
-					<LocalizedField
-						label="Descrição"
-						multiline
-						value={value.description}
-						onChange={(description) => set({ ...value, description })}
-					/>
-				</>
-			)}
+		<SettingsEditor
+			settingsKey="seo"
+			title="SEO"
+			description="Favicon, título, descrição e capa para buscadores e prévias de link."
+		>
+			{(value, set) => {
+				// Fields added later may be missing while the API is still on an older build.
+				const seo: Seo = {
+					...value,
+					favicon: value.favicon ?? "",
+					image: value.image ?? "",
+					keywords: value.keywords ?? [],
+					twitter: value.twitter ?? "",
+				};
+				return (
+					<>
+						<TextField
+							label="Título"
+							value={seo.title}
+							onChange={(title) => set({ ...seo, title })}
+							hint="Aparece na aba do navegador, nos resultados de busca e nas prévias de link. Até ~60 caracteres."
+						/>
+						<LocalizedField
+							label="Descrição"
+							multiline
+							value={seo.description}
+							onChange={(description) => set({ ...seo, description })}
+							hint={`Até ~160 caracteres. Agora: ${seo.description.pt.length} (pt) · ${seo.description.en.length} (en).`}
+						/>
+						<ImageField
+							label="Favicon"
+							value={seo.favicon}
+							onChange={(favicon) => set({ ...seo, favicon })}
+							accept="image/png,image/x-icon,image/vnd.microsoft.icon,.ico,image/webp,image/gif"
+							previewClassName="image-field__favicon"
+							hint="Ícone da aba do navegador. PNG quadrado (512×512 serve para todos os tamanhos) ou .ico. Vazio usa o favicon padrão."
+						/>
+						<ImageField
+							label="Capa"
+							value={seo.image}
+							onChange={(image) => set({ ...seo, image })}
+							hint="Imagem das prévias de link (WhatsApp, LinkedIn, X, Discord…). Use 1200×630. Artigos com capa própria usam a deles."
+						/>
+						<ChipsField
+							label="Palavras-chave"
+							value={seo.keywords}
+							onChange={(keywords) => set({ ...seo, keywords })}
+							hint="Até 20 termos."
+						/>
+						<TextField
+							label="Usuário no X (Twitter)"
+							value={seo.twitter}
+							placeholder="sem @"
+							onChange={(twitter) => set({ ...seo, twitter: twitter.replace(/^@/, "").trim() })}
+						/>
+						<div className="field">
+							<span className="field__label">Prévia</span>
+							<SharePreview seo={seo} />
+						</div>
+					</>
+				);
+			}}
 		</SettingsEditor>
 	);
 }

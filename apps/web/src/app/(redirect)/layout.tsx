@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { getContent } from "@/lib/data";
+import { siteIcons } from "@/lib/seo";
 
-export const metadata: Metadata = {
-	title: "Alan Reis",
-	robots: { index: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const { seo } = await getContent();
+	return { title: "Alan Reis", robots: { index: false }, icons: siteIcons(seo) };
+}
 
 export default function RedirectLayout({ children }: { children: React.ReactNode }) {
 	return (

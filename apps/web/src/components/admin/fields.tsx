@@ -159,16 +159,23 @@ export function useUpload() {
 	return { upload, busy };
 }
 
+const IMAGE_TYPES = "image/png,image/jpeg,image/webp,image/avif,image/gif";
+
 export function ImageField({
 	label,
 	value,
 	onChange,
 	hint,
+	accept = IMAGE_TYPES,
+	previewClassName = "image-field__preview",
 }: {
 	label: string;
 	value: string;
 	onChange: (value: string) => void;
 	hint?: string;
+	/** File types the upload button offers. */
+	accept?: string;
+	previewClassName?: string;
 }) {
 	const { upload, busy } = useUpload();
 	const fileRef = useRef<HTMLInputElement>(null);
@@ -177,7 +184,7 @@ export function ImageField({
 		<Field label={label} hint={hint}>
 			{(id) => (
 				<div className="image-field">
-					{value ? <img src={value} alt="" className="image-field__preview" /> : null}
+					{value ? <img src={value} alt="" className={previewClassName} /> : null}
 					<div className="image-field__controls">
 						<input
 							id={id}
@@ -198,7 +205,7 @@ export function ImageField({
 						<input
 							ref={fileRef}
 							type="file"
-							accept="image/png,image/jpeg,image/webp,image/avif,image/gif"
+							accept={accept}
 							hidden
 							onChange={async (event) => {
 								const file = event.target.files?.[0];
