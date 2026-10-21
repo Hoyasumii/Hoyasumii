@@ -1099,3 +1099,34 @@ select.input {
 	flex-wrap: wrap;
 	gap: 6px;
 }
+
+/* Icon styles per theme ------------------------------------------------------ */
+
+.icon-styles {
+	display: grid;
+	gap: 16px;
+}
+
+@media (min-width: 900px) {
+	.icon-styles {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+.icon-style {
+	display: grid;
+	gap: 12px;
+	align-content: start;
+	padding: 16px;
+	border: 1px solid var(--rule);
+	background: var(--paper-2);
+}
+
+.icon-style__title {
+	font-weight: 600;
+}
+
+.icon-style__row {
+	display: grid;
+	gap: 6px;
+}

@@ -1,3 +1,5 @@
+import { type Appearance, defaultAccent, defaultIconStyles, type Theme } from "./schema";
+
 /** Small color helpers shared by the site, the admin panel and the API. Colors are 6-digit hex, no "#". */
 
 export type Rgb = [number, number, number];
@@ -85,4 +87,12 @@ export function accentFor(theme: "light" | "dark", hex: string): string {
 		candidate = rgbToHex(hslToRgb([h, s, l]));
 	}
 	return candidate;
+}
+
+/** The Skill Icons variant and tint to draw in one theme of the site (tint undefined: original colors). */
+export function iconLook(appearance: Appearance, theme: Theme): { variant: Theme; tint?: string } {
+	const style = appearance.icons?.[theme] ?? defaultIconStyles[theme];
+	const accent = appearance.accent ?? defaultAccent;
+	const tint = style.tint === "accent" ? accent[theme] : style.tint || undefined;
+	return { variant: style.variant, tint };
 }

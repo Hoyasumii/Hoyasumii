@@ -46,11 +46,28 @@ const hexColor = z.string().regex(/^[0-9a-f]{6}$/, "Use 6 hex digits without #")
 /** The site's accent color in each theme (hex, no "#"). */
 export const defaultAccent = { light: "d4441c", dark: "ff6a3d" };
 
+export const themes = ["light", "dark"] as const;
+export type Theme = (typeof themes)[number];
+
+/** How Skill Icons look in one theme of the site. */
+export const iconStyleSchema = z.object({
+	/** Which Skill Icons variant to draw: its light or dark tile. */
+	variant: z.enum(themes),
+	/** "accent" (this theme's accent color), a hex color, or "" for the original colors. */
+	tint: tintSchema,
+});
+export type IconStyle = z.infer<typeof iconStyleSchema>;
+
+export const defaultIconStyles: Record<Theme, IconStyle> = {
+	light: { variant: "light", tint: "accent" },
+	dark: { variant: "dark", tint: "accent" },
+};
+
 export const appearanceSchema = z.object({
-	/** Tint applied to every Skill Icon on the site. */
-	iconTint: tintSchema,
 	/** Accent color, per theme: headings, numbers, links and buttons. */
 	accent: z.object({ light: hexColor, dark: hexColor }).default(defaultAccent),
+	/** Skill Icons style per theme of the site. */
+	icons: z.object({ light: iconStyleSchema, dark: iconStyleSchema }).default(defaultIconStyles),
 });
 
 export const settingsSchemas = {
@@ -61,11 +78,24 @@ export const settingsSchemas = {
 
 export type SettingsKey = keyof typeof settingsSchemas;
 /**
+ * Appearance documents saved before per-theme icon styles had one `iconTint` for both themes, with
+ * each theme drawing its own variant. Keep that look.
+ */
+function migrateAppearance(value: unknown): unknown {
+	if (typeof value !== "object" || value === null || "icons" in value || !("iconTint" in value)) return value;
+	const { iconTint, ...rest } = value as { iconTint: unknown };
+	return {
+		...rest,
+		icons: { light: { variant: "light", tint: iconTint }, dark: { variant: "dark", tint: iconTint } },
+	};
+}
+
+/**
  * Fills fields added after a settings document was saved (like `appearance.accent`) with their
  * defaults. A document that no longer matches the schema is returned as stored.
  */
 export function normalizeSettings<K extends SettingsKey>(key: K, value: unknown): Settings[K] {
-	const parsed = settingsSchemas[key].safeParse(value);
+	const parsed = settingsSchemas[key].safeParse(key === "appearance" ? migrateAppearance(value) : value);
 	return (parsed.success ? parsed.data : value) as Settings[K];
 }
 

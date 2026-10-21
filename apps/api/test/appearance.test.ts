@@ -3,6 +3,8 @@ import {
 	type Content,
 	contrastRatio,
 	defaultAccent,
+	defaultIconStyles,
+	iconLook,
 	inkOn,
 	MIN_ACCENT_CONTRAST,
 	PAPER,
@@ -30,11 +32,23 @@ describe("color helpers", () => {
 });
 
 describe("appearance settings", () => {
-	it("fills the accent of documents saved before it existed", async () => {
+	it("migrates documents saved with a single iconTint and no accent", async () => {
 		const { call, repository } = setup();
-		await repository.putSettings("appearance", { iconTint: "accent" } as never);
+		await repository.putSettings("appearance", { iconTint: "5fd3c4" } as never);
 		const content = await data<Content>(await call("/content"));
-		expect(content.appearance).toEqual({ iconTint: "accent", accent: defaultAccent });
+		expect(content.appearance).toEqual({
+			accent: defaultAccent,
+			icons: { light: { variant: "light", tint: "5fd3c4" }, dark: { variant: "dark", tint: "5fd3c4" } },
+		});
+	});
+
+	it("resolves the icon look per theme of the site", () => {
+		const appearance = {
+			accent: { light: "1f5fd1", dark: "6aa5ff" },
+			icons: { light: { variant: "dark", tint: "accent" }, dark: { variant: "dark", tint: "" } },
+		} as const;
+		expect(iconLook(appearance, "light")).toEqual({ variant: "dark", tint: "1f5fd1" });
+		expect(iconLook(appearance, "dark")).toEqual({ variant: "dark", tint: undefined });
 	});
 
 	it("saves a custom accent and rejects invalid colors", async () => {
@@ -42,7 +56,7 @@ describe("appearance settings", () => {
 		const ok = await call("/admin/settings/appearance", {
 			method: "PUT",
 			token: ADMIN,
-			json: { iconTint: "accent", accent: { light: "1f7a4d", dark: "4ade80" } },
+			json: { accent: { light: "1f7a4d", dark: "4ade80" }, icons: defaultIconStyles },
 		});
 		expect(ok.status).toBe(200);
 		expect((await data<Content>(await call("/content"))).appearance.accent).toEqual({
@@ -53,7 +67,7 @@ describe("appearance settings", () => {
 		const bad = await call("/admin/settings/appearance", {
 			method: "PUT",
 			token: ADMIN,
-			json: { iconTint: "accent", accent: { light: "#1f7a4d", dark: "green" } },
+			json: { accent: { light: "#1f7a4d", dark: "green" }, icons: defaultIconStyles },
 		});
 		expect(bad.status).toBe(400);
 	});

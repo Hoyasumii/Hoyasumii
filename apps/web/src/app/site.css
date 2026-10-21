@@ -868,12 +868,12 @@ a.tree__name:hover {
 	display: none;
 }
 
-.tech-icon--tinted .tech-icon__img--original {
+.tech-icon__theme--tinted .tech-icon__img--original {
 	opacity: 0;
 	transition: opacity 0.25s;
 }
 
-.tech-icon--tinted:hover .tech-icon__img--original {
+.tech-icon:hover .tech-icon__theme--tinted .tech-icon__img--original {
 	opacity: 1;
 }
 
