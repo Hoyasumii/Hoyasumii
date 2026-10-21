@@ -31,7 +31,7 @@ supabase/        Migrations (Postgres, RLS, bucket de mídia)
 
 Uma IA (ou um script) pode editar o site com as mesmas regras do painel: validação, slug único dos artigos e republicação automática.
 1. Em _Painel → Chaves de API_, crie uma chave com **Ler e editar** ou **Só ler**. Ela aparece uma única vez (`pk_…`); no banco fica só o hash SHA-256.
-2. Conecte o cliente MCP ao endpoint `https://<API_URL>/mcp` com o cabeçalho `Authorization: Bearer pk_…`. No Claude Code:
+2. Conecte o cliente MCP ao endpoint mostrado em _Servidor MCP_ no topo da seção (é o `/mcp` da API publicada, vindo de `PUBLIC_API_URL`) com o cabeçalho `Authorization: Bearer pk_…`. No Claude Code:
 
    ```sh
    claude mcp add --transport http portfolio https://portfolio-api.alanreisanjo.workers.dev/mcp \

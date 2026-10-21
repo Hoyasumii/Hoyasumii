@@ -8,6 +8,7 @@ import type {
 	Content,
 	CreatedApiKey,
 	Entry,
+	McpServer,
 	OAuthConnection,
 	Settings,
 	SettingsKey,
@@ -101,6 +102,8 @@ export function createPortfolioClient({ baseUrl, getToken, fetch: fetcher = fetc
 		createApiKey: (input: ApiKeyCreate) => request<CreatedApiKey>("/admin/api-keys", json("POST", input), true),
 		revokeApiKey: (id: string) =>
 			request<ApiKey>(`/admin/api-keys/${encodeURIComponent(id)}`, { method: "DELETE" }, true),
+
+		getMcpServer: () => request<McpServer>("/admin/mcp", {}, true),
 
 		listConnections: () => request<OAuthConnection[]>("/admin/connections", {}, true),
 		revokeConnection: (id: string) =>

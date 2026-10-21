@@ -167,3 +167,12 @@ describe("MCP server", () => {
 		]);
 	});
 });
+
+describe("MCP server address", () => {
+	it("is the /mcp endpoint of the deployed API", async () => {
+		const { call } = setup();
+		const server = await data<{ url: string }>(await call("/admin/mcp", { token: ADMIN }));
+		expect(server.url).toBe("http://localhost/mcp");
+		expect((await call("/admin/mcp")).status).toBe(401);
+	});
+});
