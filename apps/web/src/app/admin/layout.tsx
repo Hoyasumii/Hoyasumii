@@ -6,6 +6,7 @@ import { themeScript } from "@/lib/theme";
 import "../site.css";
 import "./admin.css";
 import { InlineScript } from "@/components/inline-script";
+import { ThemeSync } from "@/components/theme-sync";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const { seo } = await getContent();
@@ -18,7 +19,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 			<head>
 				<InlineScript code={themeScript} />
 			</head>
-			<body>{children}</body>
+			<body>
+				<ThemeSync />
+				{children}
+			</body>
 		</html>
 	);
 }

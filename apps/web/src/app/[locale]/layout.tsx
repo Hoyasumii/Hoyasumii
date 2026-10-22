@@ -8,6 +8,7 @@ import { themeScript } from "@/lib/theme";
 import "../site.css";
 import { AccentStyle } from "@/components/accent-style";
 import { InlineScript } from "@/components/inline-script";
+import { ThemeSync } from "@/components/theme-sync";
 
 export const dynamicParams = false;
 
@@ -73,7 +74,10 @@ export default async function LocaleLayout({
 				<InlineScript code={themeScript} />
 				<AccentStyle accent={appearance.accent} />
 			</head>
-			<body>{children}</body>
+			<body>
+				<ThemeSync />
+				{children}
+			</body>
 		</html>
 	);
 }
