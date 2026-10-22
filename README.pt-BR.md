@@ -12,35 +12,12 @@
 
 Escrevo **TypeScript** antes de tudo, com **Bun + Elysia** no backend. Gosto de backends modulares com DDD e contratos tipados, e de ferramentas para devs que funcionam igual no código, no terminal e em agentes de IA (**SDK + CLI + MCP**).
 
-## 🫘 Roastery CMS
+Projetos, experiência e artigos estão em **[hoyasumii.dev](https://hoyasumii.dev)**. Alguns para começar:
 
-O [**Roastery**](https://github.com/roastery-cms) é um CMS headless feito com Bun, Elysia, Prisma/PostgreSQL e Redis. Ele é dividido em pacotes pequenos: bibliotecas de base, *adapters* de persistência e cache, e *capsules* que plugam funcionalidades no servidor.
-
-| Pacote | O que faz | Links |
-| --- | --- | --- |
-| `@roastery/beans` | Blocos de DDD guiados por blueprint: declare o modelo uma vez e ganhe validação, schema, serialização, eventos e fixtures | [repo](https://github.com/roastery-cms/beans) · [npm](https://www.npmjs.com/package/@roastery/beans) |
-| `@roastery/terroir` | Hierarquia de exceções em camadas e validação de schema em runtime | [repo](https://github.com/roastery-cms/terroir) · [npm](https://www.npmjs.com/package/@roastery/terroir) |
-| `@roastery/aroma` | Logger estruturado baseado em transports, com correlação OpenTelemetry | [repo](https://github.com/roastery-cms/aroma) · [npm](https://www.npmjs.com/package/@roastery/aroma) |
-| `@roastery/barista` | Fábrica de servidor HTTP com Elysia | [repo](https://github.com/roastery-cms/barista) · [npm](https://www.npmjs.com/package/@roastery/barista) |
-| `@roastery/pantry` | Utilitários, casos de uso, DTOs e abstrações de domínio compartilhados | [repo](https://github.com/roastery-cms/pantry) · [npm](https://www.npmjs.com/package/@roastery/pantry) |
-| `@roastery/blend` | Contrato de manifesto das capsules: metadados, variáveis de ambiente, dependências e registro de plugins | [repo](https://github.com/roastery-cms/blend) · [npm](https://www.npmjs.com/package/@roastery/blend) |
-
-Em cima deles ficam a [API REST](https://github.com/roastery-cms/roastery) e as capsules de [autenticação](https://github.com/roastery-cms/capsules-auth), [JWT](https://github.com/roastery-cms/capsules-jwt), [cache](https://github.com/roastery-cms/adapters-cache), [posts](https://github.com/roastery-cms/capsules.post_post), [models](https://github.com/roastery-cms/capsules.models_models) e [documentação da API](https://github.com/roastery-cms/capsules-api-docs).
-
-## 🧰 SDK · MCP · CLI
-
-Clientes TypeScript tipados para APIs de terceiros. Cada um vem como **SDK**, **servidor MCP** para agentes de IA e **CLI** que registra o servidor no Claude Code, Codex e OpenCode. Os três usam o mesmo cliente, e a documentação é em inglês e português.
-
-| Biblioteca | API | Docs | npm |
-| --- | --- | --- | --- |
-| [`@hoyasumii/plane`](https://github.com/Hoyasumii/plane) | [Plane](https://plane.so) (v1 e v2) | [docs](https://hoyasumii.github.io/plane/) | [npm](https://www.npmjs.com/package/@hoyasumii/plane) |
-| [`@hoyasumii/signoz`](https://github.com/Hoyasumii/signoz) | [SigNoz](https://signoz.io) | [docs](https://hoyasumii.github.io/signoz/) | [npm](https://www.npmjs.com/package/@hoyasumii/signoz) |
-| [`@hoyasumii/linkedin`](https://github.com/Hoyasumii/linkedin) | LinkedIn: crie, edite e apague seus próprios posts | [docs](https://hoyasumii.github.io/linkedin/) | [npm](https://www.npmjs.com/package/@hoyasumii/linkedin) |
-| [`@hoyasumii/libretranslate`](https://github.com/Hoyasumii/libretranslate) | [LibreTranslate](https://libretranslate.com) | [docs](https://hoyasumii.github.io/libretranslate/) | [npm](https://www.npmjs.com/package/@hoyasumii/libretranslate) |
-
-## ✨ Skill Icons
-
-O [**Skill Icons**](https://skill-icons.alanreisanjo.workers.dev/pt-BR/) coloca seu stack no README: 600+ ícones como API de SVG, um builder visual, cards de preview de link, um servidor MCP (`/mcp`) e um [pacote npm](https://www.npmjs.com/package/@hoyasumii/skill-icons) para React, Vue, Svelte, Angular, Solid e Astro. Roda em Cloudflare Workers. [repo](https://github.com/Hoyasumii/skill-icons)
+- [**Skill Icons**](https://github.com/Hoyasumii/skill-icons): 600+ ícones de tecnologias como API de SVG, builder, servidor MCP e pacote npm.
+- [**Nyx**](https://github.com/Hoyasumii/nyx): apresente slides PDF ou PPTX em tela cheia, direto no navegador.
+- [**Roastery**](https://github.com/roastery-cms): um CMS headless com Bun, Elysia, Prisma e Redis, dividido em pacotes pequenos.
+- **SDK · MCP · CLI** para [Plane](https://github.com/Hoyasumii/plane), [SigNoz](https://github.com/Hoyasumii/signoz), [LinkedIn](https://github.com/Hoyasumii/linkedin) e [LibreTranslate](https://github.com/Hoyasumii/libretranslate).
 
 ## 🧠 Stack
 
@@ -51,7 +28,7 @@ O [**Skill Icons**](https://skill-icons.alanreisanjo.workers.dev/pt-BR/) coloca 
 > ![React, Next.js, Vue, Pinia, Vuetify, Tailwind, Sass, Redux, Zustand, Storybook, Lit, Vite, HTML, CSS, JavaScript, Figma](https://skill-icons.alanreisanjo.workers.dev/icons?i=react,next,vue,pinia,vuetify,tailwind,sass,redux,zustand,storybook,lit,vite,html,css,js,figma&tint=ff6a3d)
 
 **Mobile & Desktop**
-> ![React Native, Expo, Electron](https://skill-icons.alanreisanjo.workers.dev/icons?i=reactnative,expo,electron&tint=ff6a3d)
+> ![React Native, Expo, Electron, Swift](https://skill-icons.alanreisanjo.workers.dev/icons?i=reactnative,expo,electron,swift&tint=ff6a3d)
 
 **Dados**
 > ![PostgreSQL, MySQL, SQLite, Redis, MongoDB, Supabase](https://skill-icons.alanreisanjo.workers.dev/icons?i=postgres,mysql,sqlite,redis,mongo,supabase&tint=ff6a3d)
@@ -63,13 +40,10 @@ O [**Skill Icons**](https://skill-icons.alanreisanjo.workers.dev/pt-BR/) coloca 
 > ![Vitest, Jest, Playwright, Cypress, Biome, ESLint, Prettier, Husky, Docusaurus](https://skill-icons.alanreisanjo.workers.dev/icons?i=vitest,jest,playwright,cypress,biome,eslint,prettier,husky,docusaurus&tint=ff6a3d)
 
 **IA & Observabilidade**
-> ![Claude, MCP, Gemini, OpenTelemetry, SigNoz](https://skill-icons.alanreisanjo.workers.dev/icons?i=claude,mcp,gemini,opentelemetry,signoz&tint=ff6a3d)
+> ![Claude, MCP, Gemini, OpenTelemetry, SigNoz, Codex](https://skill-icons.alanreisanjo.workers.dev/icons?i=claude,mcp,gemini,opentelemetry,signoz,codex&tint=ff6a3d)
 
-**Também já trabalhei com**
+**Também já usei**
 > ![C#, .NET, Python, Java, Ruby, Rails, PHP, Laravel, Symfony, Premiere, Photoshop](https://skill-icons.alanreisanjo.workers.dev/icons?i=cs,net,py,java,ruby,rails,php,laravel,symfony,pr,ps&tint=ff6a3d)
-
-📚 **Estudando**
-> ![Nuxt, GraphQL](https://skill-icons.alanreisanjo.workers.dev/icons?i=nuxt,gql&tint=ff6a3d)
 
 ## 📫 Contato
 
@@ -78,3 +52,7 @@ O [**Skill Icons**](https://skill-icons.alanreisanjo.workers.dev/pt-BR/) coloca 
 [![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/@hoy-oden)
 [![TabNews](https://img.shields.io/badge/TabNews-111?style=for-the-badge&logo=readdotcv&logoColor=white)](https://www.tabnews.com.br/hoyasumii)
 [![E-mail](https://img.shields.io/badge/E--mail-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:alanreisanjo@gmail.com)
+
+---
+
+<sub>O código deste repositório está sob a [licença MIT](LICENSE).</sub>
