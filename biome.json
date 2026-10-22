@@ -10,7 +10,8 @@
 			"!**/.wrangler",
 			"!**/next-env.d.ts",
 			"!README.md",
-			"!README.pt-BR.md"
+			"!README.pt-BR.md",
+			"!.claude"
 		]
 	},
 	"formatter": {

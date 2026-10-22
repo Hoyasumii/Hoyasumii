@@ -1,0 +1,68 @@
+/* The site's tokens and fonts (apps/web/src/app/site.css, apps/web/src/lib/fonts.ts). */
+
+@font-face {
+	font-family: "Archivo";
+	src: url("fonts/archivo-wdth-wght.woff2") format("woff2-variations");
+	font-weight: 100 900;
+	font-stretch: 62% 125%;
+}
+
+@font-face {
+	font-family: "IBM Plex Mono";
+	src: url("fonts/ibm-plex-mono-400.woff2") format("woff2");
+	font-weight: 400;
+}
+
+@font-face {
+	font-family: "IBM Plex Mono";
+	src: url("fonts/ibm-plex-mono-500.woff2") format("woff2");
+	font-weight: 500;
+}
+
+:root {
+	--paper: #ebe9e3;
+	--ink: #141413;
+	--muted: #75736c;
+	--rule: rgb(20 20 19 / 0.16);
+	--accent: #d4441c;
+
+	--sans: "Archivo", system-ui, sans-serif;
+	--mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+:root[data-theme="dark"] {
+	--paper: #0e0e0d;
+	--ink: #ecebe5;
+	--muted: #87857d;
+	--rule: rgb(236 235 229 / 0.14);
+	--accent: #ff6a3d;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	background: transparent;
+}
+
+/* The name as in .hero__name: Archivo ExtraBold, as condensed as it goes. */
+.display {
+	font-family: var(--sans);
+	font-weight: 800;
+	font-stretch: 62%;
+	font-variation-settings: "wdth" 62;
+	letter-spacing: -0.015em;
+	text-transform: uppercase;
+}
+
+.label {
+	font-family: var(--mono);
+	font-weight: 500;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+}

@@ -10,6 +10,7 @@
 		"dev:web": "bun --filter @portfolio/web dev",
 		"dev:api": "bun --filter @portfolio/api dev",
 		"build:web": "bun --filter @portfolio/web build",
+		"brand": "bun --filter @portfolio/brand render",
 		"test": "bun --filter '*' test",
 		"typecheck": "bun --filter '*' typecheck",
 		"lint": "biome check .",
