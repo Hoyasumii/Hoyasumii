@@ -5,6 +5,7 @@ import { siteIcons } from "@/lib/seo";
 import { themeScript } from "@/lib/theme";
 import "./site.css";
 import { InlineScript } from "@/components/inline-script";
+import { ThemeSync } from "@/components/theme-sync";
 
 export async function generateMetadata(): Promise<Metadata> {
 	const { seo } = await getContent();
@@ -21,6 +22,7 @@ export default function GlobalNotFound() {
 				<InlineScript code={themeScript} />
 			</head>
 			<body>
+				<ThemeSync />
 				<main className="lost">
 					<p className="lost__code">404</p>
 					<p className="lede">
