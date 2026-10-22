@@ -49,6 +49,13 @@ html {
 	scroll-padding-top: calc(var(--bar) + 16px);
 }
 
+/* The theme switch is a circular reveal (see lib/circle-reveal.ts): no cross-fade between snapshots. */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation: none;
+	mix-blend-mode: normal;
+}
+
 body {
 	margin: 0;
 	background: var(--paper);
