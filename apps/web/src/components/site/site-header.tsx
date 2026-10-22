@@ -1,8 +1,14 @@
-import { type Locale, locales, type Profile } from "@portfolio/shared";
+import { type Locale, locales, type Profile, releaseName } from "@portfolio/shared";
 import Link from "next/link";
-import type { Dictionary } from "@/lib/i18n";
+import { getPushKey, getReleases } from "@/lib/data";
+import { type Dictionary, t } from "@/lib/i18n";
+import { formatDate } from "./article-list";
 import { LocalClock } from "./local-clock";
+import { type NewsItem, NewsPanel } from "./news-panel";
 import { ThemeToggle } from "./theme-toggle";
+
+/** How many releases the news panel lists; the rest are on the news page. */
+const NEWS_LIMIT = 12;
 
 export type NavItem = { id: string; label: string };
 
@@ -17,7 +23,18 @@ type Props = {
 	anchorBase?: string;
 };
 
-export function SiteHeader({ profile, locale, nav, d, path = "", anchorBase = "" }: Props) {
+export async function SiteHeader({ profile, locale, nav, d, path = "", anchorBase = "" }: Props) {
+	const [releases, pushKey] = await Promise.all([getReleases(), getPushKey()]);
+	const news: NewsItem[] = releases.slice(0, NEWS_LIMIT).map((release) => ({
+		slug: release.slug,
+		name: releaseName(release),
+		kind: d[release.kind],
+		date: release.publishedAt,
+		dateLabel: formatDate(release.publishedAt, locale),
+		summary: t(release.summary, locale),
+		href: `/${locale}/releases/${release.slug}/`,
+	}));
+
 	return (
 		<header className="topbar">
 			<Link href={`/${locale}/`} className="topbar__brand">
@@ -35,6 +52,16 @@ export function SiteHeader({ profile, locale, nav, d, path = "", anchorBase = ""
 				))}
 			</nav>
 			<div className="topbar__tools">
+				{news.length > 0 || pushKey ? (
+					<NewsPanel
+						items={news}
+						locale={locale}
+						allHref={`/${locale}/releases/`}
+						pushKey={pushKey}
+						apiUrl={process.env.NEXT_PUBLIC_API_URL ?? null}
+						labels={d}
+					/>
+				) : null}
 				<nav className="lang-switch" aria-label={d.language}>
 					{locales.map((code) =>
 						code === locale ? (

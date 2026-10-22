@@ -22,4 +22,11 @@ export type Env = {
 	GITHUB_REPOSITORY?: string;
 	/** Fine-grained token with "Contents: read and write" on that repository. */
 	GITHUB_DISPATCH_TOKEN?: string;
+	/** Public address of the website (with its base path), linked from push notifications. */
+	PUBLIC_SITE_URL?: string;
+	/** Web Push keys (`bun --filter @portfolio/api vapid`): the public key is a plain var, the private one a secret. */
+	VAPID_PUBLIC_KEY?: string;
+	VAPID_PRIVATE_KEY?: string;
+	/** Contact push services can reach, e.g. "mailto:you@example.com". */
+	VAPID_SUBJECT?: string;
 };

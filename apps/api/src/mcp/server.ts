@@ -16,7 +16,7 @@ import type { Principal } from "../services/auth";
 
 const collection = z
 	.enum(collectionNames as [CollectionName, ...CollectionName[]])
-	.describe("projects, experience, stack (icon groups), links or articles");
+	.describe("projects, experience, stack (icon groups), links, articles or releases (release notes)");
 const settingsKey = z
 	.enum(settingsKeys as [SettingsKey, ...SettingsKey[]])
 	.describe("profile, seo, appearance (accent color and Skill Icons style per theme) or devto (dev.to articles)");
@@ -29,7 +29,7 @@ made here is saved and the site is rebuilt and redeployed by itself in 1-2 minut
 
 Content:
 - settings (one document each): profile, seo, appearance, devto.
-- collections (ordered lists): projects, experience, stack, links, articles.
+- collections (ordered lists): projects, experience, stack, links, articles, releases.
 Texts shown on the site are bilingual objects: { "pt": "...", "en": "..." }. Always fill both.
 Stack icons and project stacks use Skill Icons names (ts, react, postgres, ...).
 The accent color (appearance.accent) has a light and a dark variant, as 6 hex digits without "#";
@@ -42,8 +42,20 @@ an image before pointing a field at it.
 Articles are Markdown; unpublished articles stay as drafts. devto turns the listing of dev.to articles
 on or off; when enabled it needs url, the dev.to profile page (https://dev.to/username).
 
+Releases are release notes: a new project (kind "launch") or something new in one (kind "feature"),
+e.g. title "Skill Icons", version "26.10.3". They get their own page and show in the site's "news" panel,
+never in the articles list. project is the id of the entry in projects (or "" for none); summary is one or
+two sentences per language (the news panel and the push notification), body is Markdown per language.
+With notify on, everyone subscribed in the browser gets a push notification once the release is live.
+Whenever the user creates a project, publishes one, or tells you they shipped a feature, ask whether they
+want a release note for it, and offer to draft it from what you know about the change.
+
 Before creating or changing something, call describe_schema for its exact fields. Use update_entry and
 update_settings to change only some fields: the rest is kept.`;
+
+/** After a project is created or published, the agent should offer a release note. */
+const RELEASE_HINT =
+	'Ask the user whether they want a release note for this (collection "releases", kind "launch" for a new project, "feature" for something new in it).';
 
 function ok(value: unknown): CallToolResult {
 	return { content: [{ type: "text", text: JSON.stringify(value ?? null, null, 2) }] };
@@ -142,7 +154,11 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 			inputSchema: { collection, data: fields },
 			annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
 		},
-		({ collection, data }) => run(() => admin.create(collection, data)),
+		async ({ collection, data }) => {
+			const result = await run(() => admin.create(collection, data));
+			if (collection === "projects" && !result.isError) result.content.push({ type: "text", text: RELEASE_HINT });
+			return result;
+		},
 	);
 
 	server.registerTool(
@@ -154,7 +170,13 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 			inputSchema: { collection, id: z.string(), data: fields },
 			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 		},
-		({ collection, id, data }) => run(() => admin.patch(collection, id, data)),
+		async ({ collection, id, data }) => {
+			const result = await run(() => admin.patch(collection, id, data));
+			if (collection === "projects" && data.published === true && !result.isError) {
+				result.content.push({ type: "text", text: RELEASE_HINT });
+			}
+			return result;
+		},
 	);
 
 	server.registerTool(

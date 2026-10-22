@@ -9,7 +9,7 @@ type Item<N extends CollectionName> = Entry<CollectionInput<N>>;
 type Props<N extends CollectionName> = {
 	name: N;
 	title: string;
-	description?: string;
+	description?: React.ReactNode;
 	/** Singular noun for buttons ("projeto", "artigo"…). */
 	noun: string;
 	empty: () => CollectionInput<N>;
@@ -17,7 +17,12 @@ type Props<N extends CollectionName> = {
 	meta?: (item: CollectionInput<N>) => string;
 	/** Collections the site sorts on its own (articles by date) hide the reorder buttons. */
 	sortable?: boolean;
-	children: (value: CollectionInput<N>, set: (value: CollectionInput<N>) => void) => React.ReactNode;
+	/** A draft to open as a new entry when the editor mounts (e.g. handed over by another section). */
+	initial?: () => CollectionInput<N> | null;
+	/** After a save; `previous` is the entry as it was saved before, or null when it was just created. */
+	onSaved?: (entry: Item<N>, previous: CollectionInput<N> | null) => void;
+	/** `id` is set while editing a saved entry. */
+	children: (value: CollectionInput<N>, set: (value: CollectionInput<N>) => void, id?: string) => React.ReactNode;
 };
 
 type Selection = { mode: "none" } | { mode: "new" } | { mode: "edit"; id: string };
@@ -37,6 +42,8 @@ export function CollectionEditor<N extends CollectionName>({
 	label,
 	meta,
 	sortable = true,
+	initial,
+	onSaved,
 	children,
 }: Props<N>) {
 	const { api, notify } = useAdmin();
@@ -58,6 +65,15 @@ export function CollectionEditor<N extends CollectionName>({
 		load();
 	}, [load]);
 
+	// Read once on mount: a handed-over draft opens unsaved, so "Salvar" is enabled right away.
+	const [handedOver] = useState(() => initial?.() ?? null);
+	useEffect(() => {
+		if (!handedOver) return;
+		setSelection({ mode: "new" });
+		setDraft(handedOver);
+		setBaseline("");
+	}, [handedOver]);
+
 	const dirty = draft !== null && JSON.stringify(draft) !== baseline;
 
 	function confirmDiscard() {
@@ -76,6 +92,7 @@ export function CollectionEditor<N extends CollectionName>({
 		if (!draft) return;
 		setBusy(true);
 		try {
+			const previous = selection.mode === "edit" && baseline ? (JSON.parse(baseline) as CollectionInput<N>) : null;
 			const entry =
 				selection.mode === "edit" ? await api.update(name, selection.id, draft) : await api.create(name, draft);
 			await load();
@@ -83,6 +100,7 @@ export function CollectionEditor<N extends CollectionName>({
 			setDraft(strip(entry));
 			setBaseline(JSON.stringify(strip(entry)));
 			notify(`${noun[0].toUpperCase()}${noun.slice(1)} salvo. O site será republicado em instantes.`, "success");
+			onSaved?.(entry, previous);
 		} catch (error) {
 			notify(errorMessage(error), "error");
 		} finally {
@@ -182,7 +200,7 @@ export function CollectionEditor<N extends CollectionName>({
 					) : (
 						<form className="form" onSubmit={save}>
 							<p className="editor__mode">{selection.mode === "new" ? `Novo ${noun}` : `Editando ${noun}`}</p>
-							{children(draft, setDraft)}
+							{children(draft, setDraft, selection.mode === "edit" ? selection.id : undefined)}
 							<div className="form__actions">
 								<button type="submit" className="button button--primary" disabled={busy || !dirty}>
 									{busy ? "Salvando…" : dirty ? "Salvar" : "Salvo"}

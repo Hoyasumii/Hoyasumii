@@ -9,6 +9,7 @@ import {
 	type SettingsKey,
 	settingsKeys,
 	settingsSchemas,
+	sluggedCollections,
 } from "@portfolio/shared";
 import type { ZodType, z } from "zod";
 import type { Deps } from "../container";
@@ -82,6 +83,7 @@ export class AdminService {
 	async create<N extends CollectionName>(name: N, value: unknown): Promise<Entry<CollectionInput<N>>> {
 		const input = parse(collectionSchemas[name], value) as CollectionInput<N>;
 		await this.assertUniqueSlug(name, input);
+		await this.assertProject(name, input);
 		const entry = await this.deps.repository.create(name, input);
 		await this.afterChange(`${name} entry created`);
 		return entry;
@@ -90,6 +92,7 @@ export class AdminService {
 	async update<N extends CollectionName>(name: N, id: string, value: unknown): Promise<Entry<CollectionInput<N>>> {
 		const input = parse(collectionSchemas[name], value) as CollectionInput<N>;
 		await this.assertUniqueSlug(name, input, id);
+		await this.assertProject(name, input);
 		const entry = await this.deps.repository.update(name, id, input);
 		if (!entry) throw notFound("Entry");
 		await this.afterChange(`${name} entry updated`);
@@ -152,20 +155,34 @@ export class AdminService {
 		}
 	}
 
-	/** Article slugs are their URLs, so two articles can't share one. */
+	/** Article and release slugs are their URLs, so two entries of one collection can't share one. */
 	private async assertUniqueSlug(name: CollectionName, input: unknown, id?: string) {
-		if (name !== "articles") return;
+		if (!sluggedCollections.includes(name)) return;
 		const { slug } = input as { slug: string };
-		const taken = (await this.deps.repository.list("articles")).some(
-			(article) => article.slug === slug && article.id !== id,
+		const taken = (await this.deps.repository.list(name)).some(
+			(entry) => (entry as { slug?: string }).slug === slug && entry.id !== id,
 		);
-		if (taken) throw new HttpError(409, "conflict", `Another article already uses the slug "${slug}"`);
+		const noun = name === "articles" ? "article" : "release";
+		if (taken) throw new HttpError(409, "conflict", `Another ${noun} already uses the slug "${slug}"`);
+	}
+
+	/** A release names its project by id; catch typos before they become a dead link. */
+	private async assertProject(name: CollectionName, input: unknown) {
+		if (name !== "releases") return;
+		const { project } = input as CollectionInput<"releases">;
+		if (!project) return;
+		const exists = (await this.deps.repository.list("projects")).some((entry) => entry.id === project);
+		if (!exists) {
+			throw badRequest("Invalid data", [
+				{ path: ["project"], message: `No project with id "${project}" (use list_entries on projects)` },
+			]);
+		}
 	}
 
 	/** Drops the cached content, then rebuilds the website in the background. */
 	private async afterChange(reason: string) {
-		const { content, articles, publisher } = this.deps;
-		await Promise.all([content.invalidate(), articles.invalidate()]);
+		const { content, articles, releases, publisher } = this.deps;
+		await Promise.all([content.invalidate(), articles.invalidate(), releases.invalidate()]);
 		this.background(
 			publisher
 				.publish(`${reason} by ${this.actor}`)

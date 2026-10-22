@@ -35,6 +35,16 @@ export function createApp(resolveDeps: (env: Env) => Deps) {
 			maxAge: 86400,
 		}),
 	);
+	// Visitors (un)subscribe to notifications from the website itself.
+	app.use(
+		"/push/*",
+		cors({
+			origin: (origin, c) => (c.get("deps").allowedOrigins.includes(origin.toLowerCase()) ? origin : null),
+			allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
+			allowHeaders: ["Content-Type"],
+			maxAge: 86400,
+		}),
+	);
 	app.use("*", cors({ origin: "*", allowMethods: ["GET", "OPTIONS"] }));
 
 	app.get("/", (c) => c.json({ data: { name: "portfolio-api", status: "ok" } }));

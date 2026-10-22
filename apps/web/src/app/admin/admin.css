@@ -173,6 +173,35 @@
 	color: var(--muted);
 }
 
+.panel__description code {
+	font-family: var(--mono);
+	font-size: 0.9em;
+}
+
+/* A button that reads like a link, inside running text. */
+.link-button {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--accent);
+	font: inherit;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	cursor: pointer;
+}
+
+.link-button:disabled {
+	opacity: 0.6;
+	cursor: progress;
+}
+
+/* Actions about the entry being edited, above its fields. */
+.form__aside {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
 .empty {
 	padding: 24px 0;
 	font-family: var(--mono);

@@ -208,12 +208,42 @@ export const articleInput = z.object({
 	published: z.boolean(),
 });
 
+export const releaseKinds = ["launch", "feature"] as const;
+export type ReleaseKind = (typeof releaseKinds)[number];
+
+/**
+ * Release notes: a new project ("launch") or something new in one ("feature"). They have their own
+ * page and show in the site's "news" panel, never in the articles list, and can go out as a push
+ * notification to whoever subscribed in the browser.
+ */
+export const releaseInput = z.object({
+	/** What was released, usually the project's name ("Skill Icons"). */
+	title: z.string().trim().min(1).max(80),
+	/** Optional version shown after the title ("26.10.3"). */
+	version: z.string().trim().max(32),
+	kind: z.enum(releaseKinds),
+	/** Id of the entry in `projects` this is about; empty when it is about none. */
+	project: z.string(),
+	slug: slugSchema,
+	/** One or two sentences: shown in the news panel and as the notification text. */
+	summary: localized,
+	/** Markdown, one text per language. */
+	body: localized,
+	cover: optionalUrl,
+	/** ISO date (YYYY-MM-DD). */
+	publishedAt: z.iso.date(),
+	published: z.boolean(),
+	/** Sends a push notification to subscribers once the release is live on the site. */
+	notify: z.boolean(),
+});
+
 export const collectionSchemas = {
 	projects: projectInput,
 	experience: experienceInput,
 	stack: stackGroupInput,
 	links: linkInput,
 	articles: articleInput,
+	releases: releaseInput,
 } as const;
 
 export type CollectionName = keyof typeof collectionSchemas;
@@ -228,6 +258,12 @@ export type Experience = Entry<z.infer<typeof experienceInput>>;
 export type StackGroup = Entry<z.infer<typeof stackGroupInput>>;
 export type Link = Entry<z.infer<typeof linkInput>>;
 export type SiteArticle = Entry<z.infer<typeof articleInput>>;
+export type Release = Entry<z.infer<typeof releaseInput>>;
+
+/** How a release is named everywhere: "Skill Icons 26.10.3". */
+export function releaseName(release: Pick<Release, "title" | "version">): string {
+	return [release.title, release.version].filter(Boolean).join(" ");
+}
 
 export type Collections = { [N in CollectionName]: Entry<CollectionInput<N>>[] };
 
@@ -239,11 +275,17 @@ export const reorderSchema = z.object({
  * Public content: everything the website renders, in one response.
  * ------------------------------------------------------------------------- */
 
-/** Articles are served on their own (see /articles), so their bodies stay out of this document. */
-export type ContentCollectionName = Exclude<CollectionName, "articles">;
+/**
+ * Articles and releases are served on their own (see /articles and /releases), so their bodies stay
+ * out of this document.
+ */
+export type ContentCollectionName = Exclude<CollectionName, "articles" | "releases">;
 export const contentCollectionNames = collectionNames.filter(
-	(name): name is ContentCollectionName => name !== "articles",
+	(name): name is ContentCollectionName => name !== "articles" && name !== "releases",
 );
+
+/** Collections whose entries have a page of their own, so their slugs must be unique. */
+export const sluggedCollections: CollectionName[] = ["articles", "releases"];
 
 export type Content = Settings & Pick<Collections, ContentCollectionName> & { updatedAt: string | null };
 
@@ -325,3 +367,45 @@ export type OAuthConnection = {
 
 /** The MCP server of the deployed API. */
 export type McpServer = { url: string };
+
+/* ----------------------------------------------------------------------------
+ * Web Push: visitors subscribe in the browser and get a notification for each new release.
+ * ------------------------------------------------------------------------- */
+
+const base64url = /^[A-Za-z0-9_-]+={0,2}$/;
+
+/** What a browser's PushSubscription.toJSON() gives, plus the language to notify in. */
+export const pushSubscriptionSchema = z.object({
+	endpoint: z.url({ protocol: /^https$/ }).max(2048),
+	keys: z.object({
+		p256dh: z.string().regex(base64url).max(256),
+		auth: z.string().regex(base64url).max(64),
+	}),
+	locale: localeSchema,
+});
+export type PushSubscriptionInput = z.infer<typeof pushSubscriptionSchema>;
+
+export const pushUnsubscribeSchema = pushSubscriptionSchema.pick({ endpoint: true });
+
+/** The VAPID public key browsers subscribe with; null while push is not configured. */
+export type PushKey = { publicKey: string | null };
+
+/** What a release notification carries; the service worker turns it into a notification. */
+export type PushMessage = { title: string; body: string; url: string; tag: string; icon?: string };
+
+export type PushStatus = {
+	enabled: boolean;
+	subscribers: number;
+	/** Published releases with `notify` on that were not sent yet. */
+	pending: { id: string; title: string; slug: string }[];
+};
+
+export type PushReport = {
+	sent: { id: string; slug: string; recipients: number; failed: number }[];
+	/** Releases not on the site yet (its page answered 404): they go out on the next run. */
+	waiting: string[];
+	/** Releases too old to notify about, marked as handled without sending. */
+	skipped: string[];
+	/** Subscriptions the push service said are gone, now deleted. */
+	removed: number;
+};

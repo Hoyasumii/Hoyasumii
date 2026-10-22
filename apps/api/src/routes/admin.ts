@@ -74,6 +74,10 @@ export const adminRoutes = new Hono<AppEnv>()
 		await c.get("admin").publish();
 		return c.json({ data: { queued: true } }, 202);
 	})
+	/** Subscribers and releases waiting to be announced. */
+	.get("/push", async (c) => c.json({ data: await c.get("deps").push.status() }))
+	/** Called by the deploy workflow once the site is live; sends each pending release once. */
+	.post("/push/send", async (c) => c.json({ data: await c.get("deps").push.send() }))
 	.route("/api-keys", apiKeyRoutes)
 	.route("/connections", connectionRoutes)
 

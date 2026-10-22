@@ -11,13 +11,19 @@
 	// the namespace on first deploy and keeps using it.
 	"kv_namespaces": [{ "binding": "OAUTH_KV" }],
 	// Plain settings. Secrets (SUPABASE_SERVICE_ROLE_KEY, UPSTASH_REDIS_REST_TOKEN,
-	// GITHUB_DISPATCH_TOKEN, ...) are set with `wrangler secret put` or by the deploy workflow.
+	// GITHUB_DISPATCH_TOKEN, VAPID_PRIVATE_KEY, ...) are set with `wrangler secret put` or by the deploy workflow.
 	"vars": {
 		"PUBLIC_API_URL": "https://portfolio-api.alanreisanjo.workers.dev",
 		"SUPABASE_STORAGE_BUCKET": "media",
 		"GITHUB_REPOSITORY": "Hoyasumii/Hoyasumii",
 		"ALLOWED_ORIGINS": "https://hoyasumii.dev,http://localhost:3000",
-		"ADMIN_EMAILS": "alanreisanjo@gmail.com"
+		"ADMIN_EMAILS": "alanreisanjo@gmail.com",
+		// Release notifications (Web Push): links point to the site, and push services may write to
+		// the subject. VAPID_PUBLIC_KEY comes from `bun --filter @portfolio/api vapid`; while it is
+		// empty (or the VAPID_PRIVATE_KEY secret is missing) push stays off.
+		"PUBLIC_SITE_URL": "https://hoyasumii.dev",
+		"VAPID_SUBJECT": "mailto:alanreisanjo@gmail.com",
+		"VAPID_PUBLIC_KEY": ""
 	}
 	// To serve the API from your own domain, add for example:
 	// "routes": [{ "pattern": "api.hoyasumii.dev", "custom_domain": true }]
