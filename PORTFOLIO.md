@@ -34,12 +34,7 @@ Em _Painel → Novidades_ ficam os anúncios: o lançamento de um projeto ou uma
 - Pelo MCP, a coleção é `releases`. O servidor instrui o agente a perguntar se você quer um anúncio sempre que criar ou publicar um projeto.
 - **Notificações push**: no modal de Novidades, o visitante ativa as notificações do navegador (PC ou Android; no iPhone/iPad só funciona com o site adicionado à Tela de Início). Anúncios com _Enviar notificação_ ligado são enviados uma única vez, no idioma de quem se inscreveu, logo depois do deploy que publica a página deles. O job `notify` do workflow chama `POST /admin/push/send`, que só envia quando a página do anúncio já está no ar. Anúncios com mais de 7 dias não são enviados.
 
-Para ligar o push:
-1. `bun --filter @portfolio/api vapid` gera o par de chaves. Faça isso uma vez só: trocar as chaves invalida todas as inscrições.
-2. Coloque a chave pública em `VAPID_PUBLIC_KEY` no `apps/api/wrangler.jsonc` e a privada no secret `VAPID_PRIVATE_KEY` do GitHub. `PUBLIC_SITE_URL` e `VAPID_SUBJECT` já estão lá.
-3. Crie uma chave **Ler e editar** em _Painel → Chaves de API_ e salve como o secret `PORTFOLIO_API_KEY`. O job `notify` usa essa chave para disparar o envio.
-
-Sem essas configurações, o site continua mostrando as Novidades, só sem o botão de notificação.
+Para ligar o push em produção, veja [Notificações push](#5-notificações-push). Sem essa configuração, o site continua mostrando as Novidades, só sem o botão de notificação.
 
 ## Chaves de API e servidor MCP
 
@@ -132,6 +127,28 @@ Crie um API token com permissão _Edit Cloudflare Workers_. Se quiser a API em d
 | `BASE_PATH`         | vazio com domínio próprio; `/Hoyasumii` sem ele |
 
 E-mails com acesso ao painel e origens permitidas ficam em `apps/api/wrangler.jsonc` (`ADMIN_EMAILS`, `ALLOWED_ORIGINS`).
+
+### 5. Notificações push
+
+Opcional. A ordem importa: configure as chaves antes do deploy da API, para ela já subir com o push ligado.
+1. **Chaves VAPID.** Já geradas: a pública está em `VAPID_PUBLIC_KEY`, no `apps/api/wrangler.jsonc`. Para gerar um par novo, rode `bun --filter @portfolio/api vapid`. Gere só uma vez: com chaves novas, quem já se inscreveu deixa de receber.
+2. **Chave privada.** Em **Settings → Secrets and variables → Actions → New repository secret**, crie `VAPID_PRIVATE_KEY` com o valor que vem depois de `VAPID_PRIVATE_KEY=`. Ela nunca vai para o código.
+3. **Migration.** Com o secret `SUPABASE_DB_URL`, o deploy aplica `supabase/migrations/20261024000000_releases_push.sql` sozinho. Sem ele, rode esse arquivo no **SQL Editor** do Supabase antes do deploy, senão salvar uma Novidade dá erro.
+4. **Deploy.** Faça o merge na `main` (ou rode o workflow **Deploy** manualmente com _Also redeploy the API_). `PUBLIC_SITE_URL`, `VAPID_SUBJECT` e `ALLOWED_ORIGINS` já estão no `wrangler.jsonc`.
+5. **Chave do envio.** Com a API no ar, crie em _Painel → Chaves de API_ uma chave **Ler e editar** (ex.: `GitHub Actions`) e salve o `pk_…` como o secret `PORTFOLIO_API_KEY`. O job `notify` usa essa chave para chamar `POST /admin/push/send` depois de cada deploy do site.
+6. **Teste.**
+   1. No site, abra **Novidades → Avisar por notificação** e permita. No iPhone/iPad, antes adicione o site à Tela de Início (**Compartilhar → Adicionar à Tela de Início**) e abra por lá.
+   2. Em _Painel → Novidades_, confira se aparece "1 navegador inscrito".
+   3. Crie um anúncio com a data de hoje, **Publicado** e **Enviar notificação** ligados.
+   4. Em uns 2 minutos, quando o deploy terminar, a notificação chega.
+
+Se não chegar:
+- **Anúncio parado na fila:** _Painel → Novidades_ mostra "Na fila: …" e o link **Enviar agora**, que envia na hora.
+- **Log do envio:** em **Actions → Deploy → job `notify`**, procure:
+  - `"recipients"`: quantos navegadores receberam.
+  - `"waiting"`: a página ainda não estava no ar. O job tenta de novo por 2 minutos; depois, o anúncio sai no próximo deploy.
+  - `PORTFOLIO_API_KEY ... not set`: falta o secret do passo 5.
+- **Sem botão de notificação no site:** a API subiu sem `VAPID_PRIVATE_KEY`. Crie o secret e rode o **Deploy** com _Also redeploy the API_.
 
 ### Deploy
 
