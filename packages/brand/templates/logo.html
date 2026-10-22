@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Logo</title>
+		<script src="theme.js"></script>
+		<link rel="stylesheet" href="tokens.css" />
+		<style>
+			/* A rounded tile (superellipse corners, like an app icon) with the monogram. */
+			.tile {
+				display: grid;
+				place-items: center;
+				width: 512px;
+				height: 512px;
+				background: var(--paper);
+				border-radius: 50%;
+				corner-shape: superellipse(2.3);
+			}
+
+			.mark {
+				display: flex;
+				margin: 0;
+				gap: 8px;
+				font-size: 363px;
+				line-height: 1;
+				/* Trim the line box to the caps, so the letters center on their ink. */
+				text-box: trim-both cap alphabetic;
+				color: var(--ink);
+			}
+
+			.mark__accent {
+				color: var(--accent);
+			}
+		</style>
+	</head>
+	<body>
+		<div class="tile">
+			<p class="mark display"><span>A</span><span class="mark__accent">R</span></p>
+		</div>
+	</body>
+</html>

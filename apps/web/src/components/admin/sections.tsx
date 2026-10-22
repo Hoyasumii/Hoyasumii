@@ -16,9 +16,11 @@ import {
 	PAPER,
 	type Seo,
 } from "@portfolio/shared";
+import { siteHost } from "@/lib/cover";
 import { iconUrl, parseTint, TINT_SWATCHES } from "@/lib/icons";
 import { CollectionEditor } from "./collection-editor";
 import { useAdmin } from "./context";
+import { type CoverDefaults, CoverGenerator } from "./cover-generator";
 import { ChipsField, IconsField, ImageField, LocalizedField, TextArea, TextField, Toggle } from "./fields";
 import { MarkdownEditor } from "./markdown-editor";
 import { SettingsEditor } from "./settings-editor";
@@ -244,6 +246,20 @@ const emptyArticle = (): CollectionInput<"articles"> => ({
 	published: false,
 });
 
+/** An article's cover: its title, the date and language on top, the tags at the bottom. */
+function articleCover(article: CollectionInput<"articles">): CoverDefaults {
+	return (profile) => ({
+		layout: "article",
+		top: {
+			start: profile.handle || profile.name,
+			center: [article.lang === "pt" ? "Artigo" : "Article", article.publishedAt].filter(Boolean).join(" · "),
+			end: siteHost,
+		},
+		headline: article.title,
+		meta: article.tags.map((tag) => `#${tag}`),
+	});
+}
+
 export function ArticlesSection() {
 	return (
 		<CollectionEditor
@@ -305,7 +321,12 @@ export function ArticlesSection() {
 						onChange={(excerpt) => set({ ...value, excerpt })}
 					/>
 					<MarkdownEditor label="Texto" value={value.body} onChange={(body) => set({ ...value, body })} />
-					<ImageField label="Capa" value={value.cover} onChange={(cover) => set({ ...value, cover })} />
+					<ImageField
+						label="Capa"
+						value={value.cover}
+						onChange={(cover) => set({ ...value, cover })}
+						actions={<CoverGenerator defaults={articleCover(value)} onUse={(cover) => set({ ...value, cover })} />}
+					/>
 					<ChipsField label="Tags" value={value.tags} onChange={(tags) => set({ ...value, tags })} />
 					<Toggle
 						label="Publicado"
@@ -729,7 +750,13 @@ export function AppearanceSection() {
 
 /* ------------------------------------------------------------------------- */
 
-const SITE_HOST = (process.env.NEXT_PUBLIC_SITE_URL ?? "hoyasumii.dev").replace(/^https?:\/\//, "").replace(/\/$/, "");
+/** The site's cover: the hero's name, location and role, as on the home page. */
+const siteCover: CoverDefaults = (profile) => ({
+	layout: "profile",
+	top: { start: profile.handle || profile.name, center: profile.location, end: siteHost },
+	headline: profile.name.split(/\s+/).join("\n"),
+	meta: [profile.role.en],
+});
 
 /** How a link to the site looks when shared, with the browser tab above it. */
 function SharePreview({ seo }: { seo: Seo }) {
@@ -750,7 +777,7 @@ function SharePreview({ seo }: { seo: Seo }) {
 					<div className="share-preview__image share-preview__image--empty">Sem capa</div>
 				)}
 				<div className="share-preview__text">
-					<span className="share-preview__host">{SITE_HOST}</span>
+					<span className="share-preview__host">{siteHost}</span>
 					<strong className="share-preview__title">{seo.title || "Sem título"}</strong>
 					<span className="share-preview__description">{seo.description.pt}</span>
 				</div>
@@ -802,6 +829,7 @@ export function SeoSection() {
 							label="Capa"
 							value={seo.image}
 							onChange={(image) => set({ ...seo, image })}
+							actions={<CoverGenerator defaults={siteCover} onUse={(image) => set({ ...seo, image })} />}
 							hint="Imagem das prévias de link (WhatsApp, LinkedIn, X, Discord…). Use 1200×630. Artigos com capa própria usam a deles."
 						/>
 						<ChipsField

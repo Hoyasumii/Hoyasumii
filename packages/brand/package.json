@@ -1,0 +1,15 @@
+{
+	"name": "@portfolio/brand",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"render": "bun src/render.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.5",
+		"playwright": "1.56.1",
+		"typescript": "^7.0.2"
+	}
+}
