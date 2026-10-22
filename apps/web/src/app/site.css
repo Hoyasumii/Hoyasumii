@@ -157,7 +157,9 @@ button {
 	gap: 0 24px;
 	min-height: var(--bar);
 	padding: 0 var(--gutter);
-	background: var(--paper);
+	background: color-mix(in srgb, var(--paper) 72%, transparent);
+	-webkit-backdrop-filter: blur(14px) saturate(1.4);
+	backdrop-filter: blur(14px) saturate(1.4);
 	border-bottom: 1px solid var(--rule);
 	font-size: 12px;
 	letter-spacing: 0.02em;
@@ -1042,6 +1044,7 @@ a.tree__name:hover {
 	position: relative;
 	display: inline-block;
 	flex: none;
+	cursor: pointer;
 }
 
 .tech-icon__theme,
