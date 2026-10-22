@@ -1,7 +1,7 @@
 <a href="https://hoyasumii.dev">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="brand/og-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="brand/og.png">
+    <source media="(prefers-color-scheme: dark)" srcset="packages/brand/images/og-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="packages/brand/images/og-light.png">
     <img alt="Alan Reis — Hoyasumii" src="brand/og-dark.png">
   </picture>
 </a>
