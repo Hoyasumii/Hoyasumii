@@ -168,6 +168,7 @@ export function ImageField({
 	hint,
 	accept = IMAGE_TYPES,
 	previewClassName = "image-field__preview",
+	actions,
 }: {
 	label: string;
 	value: string;
@@ -176,6 +177,8 @@ export function ImageField({
 	/** File types the upload button offers. */
 	accept?: string;
 	previewClassName?: string;
+	/** More buttons beside the upload one, like the cover generator. */
+	actions?: React.ReactNode;
 }) {
 	const { upload, busy } = useUpload();
 	const fileRef = useRef<HTMLInputElement>(null);
@@ -197,6 +200,7 @@ export function ImageField({
 						<button type="button" className="button" disabled={busy} onClick={() => fileRef.current?.click()}>
 							{busy ? "Enviando…" : "Enviar imagem"}
 						</button>
+						{actions}
 						{value ? (
 							<button type="button" className="button button--ghost" onClick={() => onChange("")}>
 								Remover

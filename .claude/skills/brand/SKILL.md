@@ -20,3 +20,7 @@ Templates, renderer and outputs live in `packages/brand` (see its README).
    dark) the user picked unless they ask for another one.
 
 Link previews cache per URL: after changing the cover, test with a fresh query (`hoyasumii.dev/?v=2`).
+
+The panel has its own cover generator (SEO and article covers, "Gerar capa"): the same layout drawn on a
+canvas in `apps/web/src/lib/cover.ts`, with static fonts from `apps/web/public/fonts/`. A layout change in
+`og.html` should usually be made there too.

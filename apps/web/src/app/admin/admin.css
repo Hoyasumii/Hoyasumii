@@ -1222,3 +1222,92 @@ select.input {
 	-webkit-box-orient: vertical;
 	overflow: hidden;
 }
+
+/* Cover generator ---------------------------------------------------------- */
+
+.cover-dialog {
+	width: min(100% - 32px, 1120px);
+	max-height: calc(100svh - 32px);
+	padding: 0;
+	border: 1px solid var(--ink);
+	background: var(--paper);
+	color: var(--ink);
+}
+
+.cover-dialog::backdrop {
+	background: rgb(14 14 13 / 0.6);
+}
+
+.cover-dialog__head,
+.cover-dialog__actions {
+	position: sticky;
+	z-index: 1;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 20px;
+	background: var(--paper);
+}
+
+.cover-dialog__head {
+	top: 0;
+	justify-content: space-between;
+	border-bottom: 1px solid var(--rule);
+}
+
+.cover-dialog__actions {
+	bottom: 0;
+	border-top: 1px solid var(--rule);
+}
+
+.cover-dialog__title {
+	font-size: 2rem;
+	font-weight: 800;
+	font-stretch: 62%;
+	font-variation-settings: "wdth" 62;
+	line-height: 1;
+	text-transform: uppercase;
+}
+
+.cover-dialog__body {
+	display: grid;
+	gap: 22px;
+	padding: 20px;
+}
+
+@media (min-width: 960px) {
+	.cover-dialog__body {
+		grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+		align-items: start;
+	}
+}
+
+.cover-dialog__preview {
+	position: relative;
+}
+
+.cover-dialog__preview canvas {
+	display: block;
+	width: 100%;
+	height: auto;
+	aspect-ratio: 1200 / 630;
+	border: 1px solid var(--rule);
+	background: var(--paper-2);
+}
+
+.cover-dialog__loading {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	font-family: var(--mono);
+	font-size: 12px;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+
+.cover-dialog__form {
+	display: grid;
+	gap: 18px;
+}
