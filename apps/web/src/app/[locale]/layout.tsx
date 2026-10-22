@@ -69,7 +69,12 @@ export default async function LocaleLayout({
 	const { appearance } = await getContent();
 
 	return (
-		<html lang={locale === "pt" ? "pt-BR" : "en"} className={fontClasses} suppressHydrationWarning>
+		<html
+			lang={locale === "pt" ? "pt-BR" : "en"}
+			className={fontClasses}
+			data-scroll-behavior="smooth"
+			suppressHydrationWarning
+		>
 			<head>
 				<InlineScript code={themeScript} />
 				<AccentStyle accent={appearance.accent} />

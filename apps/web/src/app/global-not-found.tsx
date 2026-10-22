@@ -17,7 +17,7 @@ const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 /** GitHub Pages serves this as 404.html for every unknown address. */
 export default function GlobalNotFound() {
 	return (
-		<html lang="pt-BR" className={fontClasses} suppressHydrationWarning>
+		<html lang="pt-BR" className={fontClasses} data-scroll-behavior="smooth" suppressHydrationWarning>
 			<head>
 				<InlineScript code={themeScript} />
 			</head>
