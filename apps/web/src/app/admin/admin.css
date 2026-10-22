@@ -313,6 +313,7 @@
 .field {
 	display: grid;
 	gap: 8px;
+	align-content: start;
 	min-width: 0;
 	margin: 0;
 	padding: 0;

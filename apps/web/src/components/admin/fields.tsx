@@ -401,3 +401,72 @@ export function IconsField({
 		</Field>
 	);
 }
+
+type TimeZoneOption = { zone: string; offset: number; label: string };
+
+/** Minutes from UTC of a time zone right now, from Intl's "GMT-03:00" style name. */
+function utcOffset(zone: string, date: Date): number {
+	const name =
+		new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "longOffset" })
+			.formatToParts(date)
+			.find((part) => part.type === "timeZoneName")?.value ?? "GMT";
+	const match = /GMT([+-])(\d{2}):(\d{2})/.exec(name);
+	if (!match) return 0;
+	const minutes = Number(match[2]) * 60 + Number(match[3]);
+	return match[1] === "-" ? -minutes : minutes;
+}
+
+/** "UTC -03:00". */
+function formatOffset(offset: number): string {
+	const sign = offset < 0 ? "-" : "+";
+	const abs = Math.abs(offset);
+	const hours = String(Math.floor(abs / 60)).padStart(2, "0");
+	const minutes = String(abs % 60).padStart(2, "0");
+	return `UTC ${sign}${hours}:${minutes}`;
+}
+
+function timeZoneOptions(current: string): TimeZoneOption[] {
+	const now = new Date();
+	const zones = new Set(["UTC", ...Intl.supportedValuesOf("timeZone")]);
+	if (current) zones.add(current);
+	return [...zones]
+		.map((zone) => {
+			let offset = 0;
+			try {
+				offset = utcOffset(zone, now);
+			} catch {
+				// An unknown zone saved earlier still shows, at UTC, so it can be swapped.
+			}
+			return { zone, offset, label: `${formatOffset(offset)} · ${zone.replaceAll("_", " ")}` };
+		})
+		.sort((a, b) => a.offset - b.offset || a.zone.localeCompare(b.zone));
+}
+
+/** Every IANA time zone, sorted by its current difference from UTC. */
+export function TimeZoneField({
+	label,
+	value,
+	onChange,
+	hint,
+}: {
+	label: string;
+	value: string;
+	onChange: (value: string) => void;
+	hint?: string;
+}) {
+	const options = useMemo(() => timeZoneOptions(value), [value]);
+
+	return (
+		<Field label={label} hint={hint}>
+			{(id) => (
+				<select id={id} className="input" value={value} onChange={(event) => onChange(event.target.value)}>
+					{options.map((option) => (
+						<option key={option.zone} value={option.zone}>
+							{option.label}
+						</option>
+					))}
+				</select>
+			)}
+		</Field>
+	);
+}

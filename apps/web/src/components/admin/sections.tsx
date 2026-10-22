@@ -21,7 +21,16 @@ import { iconUrl, parseTint, TINT_SWATCHES } from "@/lib/icons";
 import { CollectionEditor } from "./collection-editor";
 import { useAdmin } from "./context";
 import { type CoverDefaults, CoverGenerator } from "./cover-generator";
-import { ChipsField, IconsField, ImageField, LocalizedField, TextArea, TextField, Toggle } from "./fields";
+import {
+	ChipsField,
+	IconsField,
+	ImageField,
+	LocalizedField,
+	TextArea,
+	TextField,
+	TimeZoneField,
+	Toggle,
+} from "./fields";
 import { MarkdownEditor } from "./markdown-editor";
 import { SettingsEditor } from "./settings-editor";
 
@@ -74,9 +83,9 @@ export function ProfileSection() {
 							value={value.location}
 							onChange={(location) => set({ ...value, location })}
 						/>
-						<TextField
+						<TimeZoneField
 							label="Fuso horário"
-							hint="Para o relógio do topo, ex.: America/Maceio."
+							hint="Para o relógio do topo."
 							value={value.timeZone}
 							onChange={(timeZone) => set({ ...value, timeZone })}
 						/>
