@@ -293,6 +293,7 @@ export const defaultCollections: { [N in CollectionName]: CollectionInput<N>[] }
 		{ title: { en: "Studying", pt: "Estudando" }, icons: ["nuxt", "gql"] },
 	],
 	articles: [],
+	releases: [],
 	links: [
 		{ label: "GitHub", url: "https://github.com/Hoyasumii" },
 		{ label: "LinkedIn", url: "https://linkedin.com/in/AlanReisAnjos/" },

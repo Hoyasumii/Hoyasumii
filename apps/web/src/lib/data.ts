@@ -6,6 +6,7 @@ import {
 	type Content,
 	createPortfolioClient,
 	normalizeContent,
+	type Release,
 } from "@portfolio/shared";
 
 /**
@@ -18,6 +19,8 @@ const client = apiUrl ? createPortfolioClient({ baseUrl: apiUrl, init: { cache: 
 
 let contentPromise: Promise<Content> | undefined;
 let articlesPromise: Promise<ArticleSummary[]> | undefined;
+let releasesPromise: Promise<Release[]> | undefined;
+let pushKeyPromise: Promise<string | null> | undefined;
 
 export function getContent(): Promise<Content> {
 	// Normalized here too, so content from an API that is older or newer than this build
@@ -34,4 +37,16 @@ export function getArticles(): Promise<ArticleSummary[]> {
 export async function getArticle(slug: string): Promise<Article | null> {
 	if (!client) return null;
 	return client.getArticle(slug);
+}
+
+/** Published release notes, newest first. */
+export function getReleases(): Promise<Release[]> {
+	releasesPromise ??= client ? client.getReleases() : Promise.resolve([]);
+	return releasesPromise;
+}
+
+/** The key browsers subscribe to release notifications with; null while push is off. */
+export function getPushKey(): Promise<string | null> {
+	pushKeyPromise ??= client ? client.getPushKey().then((key) => key.publicKey) : Promise.resolve(null);
+	return pushKeyPromise;
 }

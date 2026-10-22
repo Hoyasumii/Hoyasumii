@@ -79,12 +79,14 @@ jobs:
             UPSTASH_REDIS_REST_URL
             UPSTASH_REDIS_REST_TOKEN
             GITHUB_DISPATCH_TOKEN
+            VAPID_PRIVATE_KEY
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
           GITHUB_DISPATCH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
 
   build-web:
     needs: [changes, api]
@@ -127,3 +129,35 @@ jobs:
     steps:
       - uses: actions/deploy-pages@v4
         id: deployment
+
+  # Once the new pages are live, announce the releases they added. Each release is sent once and
+  # only when its page answers, so re-runs and cancelled builds are harmless.
+  notify:
+    needs: deploy-web
+    if: always() && needs.deploy-web.result == 'success'
+    runs-on: ubuntu-latest
+    concurrency: push-notify
+    steps:
+      - name: Send release notifications
+        env:
+          API_URL: ${{ vars.API_URL }}
+          API_KEY: ${{ secrets.PORTFOLIO_API_KEY }}
+        run: |
+          if [ -z "$API_KEY" ] || [ -z "$API_URL" ]; then
+            echo "PORTFOLIO_API_KEY or API_URL not set: skipping release notifications."
+            exit 0
+          fi
+          # Pages can take a moment to serve new files, so releases still "waiting" get a few retries.
+          for attempt in 1 2 3 4; do
+            status=$(curl -sS -o response.json -w '%{http_code}' -X POST \
+              -H "Authorization: Bearer $API_KEY" "${API_URL%/}/admin/push/send")
+            cat response.json; echo
+            if [ "$status" = "503" ]; then
+              echo "Push notifications are not configured on the API: nothing sent."
+              exit 0
+            elif [ "$status" -ge 300 ]; then
+              exit 1
+            fi
+            [ "$(jq '.data.waiting | length' response.json)" = "0" ] && exit 0
+            sleep 30
+          done

@@ -11,6 +11,7 @@ import {
 	LinksSection,
 	ProfileSection,
 	ProjectsSection,
+	ReleasesSection,
 	SeoSection,
 	StackSection,
 } from "./sections";
@@ -19,6 +20,7 @@ import { devMode, getSupabase, useSession } from "./session";
 const SECTIONS = {
 	profile: { label: "Perfil", render: () => <ProfileSection /> },
 	projects: { label: "Projetos", render: () => <ProjectsSection /> },
+	releases: { label: "Novidades", render: () => <ReleasesSection /> },
 	articles: { label: "Artigos", render: () => <ArticlesSection /> },
 	devto: { label: "dev.to", render: () => <DevToSection /> },
 	experience: { label: "Experiência", render: () => <ExperienceSection /> },

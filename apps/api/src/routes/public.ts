@@ -1,5 +1,17 @@
-import { Hono } from "hono";
+import { type PushKey, pushSubscriptionSchema, pushUnsubscribeSchema } from "@portfolio/shared";
+import { type Context, Hono } from "hono";
+import type { ZodType, z } from "zod";
 import type { AppEnv } from "../app";
+import { badRequest } from "../lib/errors";
+
+async function body<S extends ZodType>(c: Context<AppEnv>, schema: S): Promise<z.output<S>> {
+	const value = await c.req.json().catch(() => {
+		throw badRequest("Body must be JSON");
+	});
+	const result = schema.safeParse(value);
+	if (!result.success) throw badRequest("Invalid request body", result.error.issues);
+	return result.data;
+}
 
 type Check = { ok: true } | { ok: false; error: string };
 
@@ -46,4 +58,21 @@ export const publicRoutes = new Hono<AppEnv>()
 		const article = await c.get("deps").articles.get(c.req.param("slug"));
 		c.header("Cache-Control", "public, max-age=300, s-maxage=3600");
 		return c.json({ data: article });
+	})
+	.get("/releases", async (c) => {
+		const releases = await c.get("deps").releases.list();
+		c.header("Cache-Control", "public, max-age=300, s-maxage=1800");
+		return c.json({ data: releases });
+	})
+
+	/** Web Push: the key browsers subscribe with, and (un)subscribing from the site. */
+	.get("/push/key", (c) => c.json({ data: { publicKey: c.get("deps").push.publicKey() } satisfies PushKey }))
+	.post("/push/subscriptions", async (c) => {
+		await c.get("deps").push.subscribe(await body(c, pushSubscriptionSchema));
+		return c.json({ data: { subscribed: true } }, 201);
+	})
+	.delete("/push/subscriptions", async (c) => {
+		const { endpoint } = await body(c, pushUnsubscribeSchema);
+		await c.get("deps").push.unsubscribe(endpoint);
+		return c.json({ data: { subscribed: false } });
 	});

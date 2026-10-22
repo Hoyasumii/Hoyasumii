@@ -10,6 +10,11 @@ import type {
 	Entry,
 	McpServer,
 	OAuthConnection,
+	PushKey,
+	PushReport,
+	PushStatus,
+	PushSubscriptionInput,
+	Release,
 	Settings,
 	SettingsKey,
 } from "./schema";
@@ -78,6 +83,14 @@ export function createPortfolioClient({ baseUrl, getToken, fetch: fetcher = fetc
 		getContent: () => request<Content>("/content"),
 		getArticles: () => request<ArticleSummary[]>("/articles"),
 		getArticle: (slug: string) => request<Article>(`/articles/${encodeURIComponent(slug)}`),
+		/** Published release notes, newest first. */
+		getReleases: () => request<Release[]>("/releases"),
+
+		getPushKey: () => request<PushKey>("/push/key"),
+		subscribePush: (subscription: PushSubscriptionInput) =>
+			request<{ subscribed: true }>("/push/subscriptions", json("POST", subscription)),
+		unsubscribePush: (endpoint: string) =>
+			request<{ subscribed: false }>("/push/subscriptions", json("DELETE", { endpoint })),
 
 		getSettings: <K extends SettingsKey>(key: K) => request<Settings[K]>(`/admin/settings/${key}`, {}, true),
 		updateSettings: <K extends SettingsKey>(key: K, value: Settings[K]) =>
@@ -108,6 +121,10 @@ export function createPortfolioClient({ baseUrl, getToken, fetch: fetcher = fetc
 		listConnections: () => request<OAuthConnection[]>("/admin/connections", {}, true),
 		revokeConnection: (id: string) =>
 			request<{ id: string }>(`/admin/connections/${encodeURIComponent(id)}`, { method: "DELETE" }, true),
+
+		getPushStatus: () => request<PushStatus>("/admin/push", {}, true),
+		/** Notifies subscribers about the releases already live on the site (the deploy does this). */
+		sendPush: () => request<PushReport>("/admin/push/send", { method: "POST" }, true),
 
 		/** Rebuilds the website now (saving already does this). */
 		publish: () => request<{ queued: boolean }>("/admin/publish", { method: "POST" }, true),

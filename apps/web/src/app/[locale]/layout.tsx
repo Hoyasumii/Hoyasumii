@@ -30,6 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 		authors: [{ name: profile.name, url: siteUrl }],
 		creator: profile.name,
 		icons: siteIcons(seo),
+		manifest: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/manifest.webmanifest`,
 		alternates: {
 			canonical: `/${locale}`,
 			languages: { "pt-BR": "/pt", en: "/en" },

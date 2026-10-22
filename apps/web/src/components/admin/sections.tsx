@@ -8,18 +8,22 @@ import {
 	defaultAccent,
 	defaultIconStyles,
 	devtoUsername,
+	type Entry,
 	type IconStyle,
 	iconLook,
 	inkOn,
 	type Localized,
 	MIN_ACCENT_CONTRAST,
 	PAPER,
+	type PushStatus,
+	releaseName,
 	type Seo,
 } from "@portfolio/shared";
+import { useEffect, useState } from "react";
 import { siteHost } from "@/lib/cover";
 import { iconUrl, parseTint, TINT_SWATCHES } from "@/lib/icons";
 import { CollectionEditor } from "./collection-editor";
-import { useAdmin } from "./context";
+import { errorMessage, useAdmin } from "./context";
 import { type CoverDefaults, CoverGenerator } from "./cover-generator";
 import {
 	ChipsField,
@@ -32,6 +36,7 @@ import {
 	Toggle,
 } from "./fields";
 import { MarkdownEditor } from "./markdown-editor";
+import { emptyRelease, openRelease, releaseFor, slugify, takeRelease } from "./release-handoff";
 import { SettingsEditor } from "./settings-editor";
 
 const blank = (): Localized => ({ pt: "", en: "" });
@@ -39,16 +44,6 @@ const blank = (): Localized => ({ pt: "", en: "" });
 /** The icon style the admin previews icons with (the dark theme, like the panel). */
 function usePreviewLook() {
 	return iconLook(useAdmin().appearance, "dark");
-}
-
-function slugify(text: string): string {
-	return text
-		.normalize("NFD")
-		.replace(/[̀-ͯ]/g, "")
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "")
-		.slice(0, 80);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -131,6 +126,19 @@ const emptyProject = (): CollectionInput<"projects"> => ({
 	parts: [],
 });
 
+/** A project that just went live (created published, or published now) deserves a release note. */
+function offerLaunchNote(project: Entry<CollectionInput<"projects">>, previous: CollectionInput<"projects"> | null) {
+	const launched = project.published && (previous === null || !previous.published);
+	if (!launched) return;
+	if (
+		window.confirm(
+			`Criar um anúncio de lançamento para "${project.name}"?\n\nEle aparece em Novidades no site e pode avisar quem ativou as notificações.`,
+		)
+	) {
+		openRelease(releaseFor(project, "launch"));
+	}
+}
+
 export function ProjectsSection() {
 	const look = usePreviewLook();
 	return (
@@ -144,9 +152,21 @@ export function ProjectsSection() {
 			meta={(item) =>
 				[item.featured ? "★" : "", item.published ? "" : "rascunho", item.year].filter(Boolean).join(" · ")
 			}
+			onSaved={offerLaunchNote}
 		>
-			{(value, set) => (
+			{(value, set, id) => (
 				<>
+					{id ? (
+						<div className="form__aside">
+							<button
+								type="button"
+								className="button"
+								onClick={() => openRelease(releaseFor({ ...value, id, position: 0 }, "feature"))}
+							>
+								+ Anunciar novidade neste projeto
+							</button>
+						</div>
+					) : null}
 					<div className="grid-2">
 						<TextField label="Nome" value={value.name} onChange={(name) => set({ ...value, name })} required />
 						<TextField label="Ano" value={value.year} onChange={(year) => set({ ...value, year })} />
@@ -345,6 +365,244 @@ export function ArticlesSection() {
 					/>
 				</>
 			)}
+		</CollectionEditor>
+	);
+}
+
+/* ------------------------------------------------------------------------- */
+
+const RELEASE_KINDS = [
+	["launch", "Lançamento de projeto"],
+	["feature", "Novidade em um projeto"],
+] as const;
+
+/** A release's cover: the name and version big, the kind and date on top. */
+function releaseCover(release: CollectionInput<"releases">): CoverDefaults {
+	return (profile) => ({
+		layout: "article",
+		top: {
+			start: profile.handle || profile.name,
+			center: [release.kind === "launch" ? "Lançamento" : "Novidade", release.publishedAt].join(" · "),
+			end: siteHost,
+		},
+		headline: releaseName(release),
+		meta: [],
+	});
+}
+
+/** Who will be notified, and what is still waiting to go out. */
+function PushSummary() {
+	const { api, notify } = useAdmin();
+	const [status, setStatus] = useState<PushStatus | null>(null);
+	const [busy, setBusy] = useState(false);
+
+	useEffect(() => {
+		api
+			.getPushStatus()
+			.then(setStatus)
+			.catch(() => {});
+	}, [api]);
+
+	if (!status) return null;
+	if (!status.enabled) {
+		return (
+			<>
+				{" "}
+				Notificações push desligadas: configure as chaves VAPID na API (veja <code>PORTFOLIO.md</code>).
+			</>
+		);
+	}
+
+	async function send() {
+		setBusy(true);
+		try {
+			const report = await api.sendPush();
+			const sent = report.sent.reduce((total, item) => total + item.recipients, 0);
+			const waiting = report.waiting.length > 0 ? ` ${report.waiting.length} ainda não está no ar.` : "";
+			notify(`${report.sent.length} anúncio(s) enviado(s) para ${sent} navegador(es).${waiting}`, "success");
+			setStatus(await api.getPushStatus());
+		} catch (error) {
+			notify(errorMessage(error), "error");
+		} finally {
+			setBusy(false);
+		}
+	}
+
+	return (
+		<>
+			{" "}
+			{status.subscribers} {status.subscribers === 1 ? "navegador inscrito" : "navegadores inscritos"} nas notificações.
+			{status.pending.length > 0 ? (
+				<>
+					{" "}
+					Na fila: {status.pending.map((item) => item.title).join(", ")} (saem sozinhos após o deploy).{" "}
+					<button type="button" className="link-button" disabled={busy} onClick={send}>
+						{busy ? "Enviando…" : "Enviar agora"}
+					</button>
+				</>
+			) : null}
+		</>
+	);
+}
+
+export function ReleasesSection() {
+	const { api } = useAdmin();
+	const [projects, setProjects] = useState<Entry<CollectionInput<"projects">>[]>([]);
+
+	useEffect(() => {
+		api
+			.list("projects")
+			.then(setProjects)
+			.catch(() => {});
+	}, [api]);
+
+	return (
+		<CollectionEditor
+			name="releases"
+			title="Novidades"
+			noun="anúncio"
+			description={
+				<>
+					Lançamentos e novidades dos seus projetos. Aparecem no botão Novidades do site, com página própria, fora da
+					lista de artigos.
+					<PushSummary />
+				</>
+			}
+			sortable={false}
+			empty={emptyRelease}
+			initial={takeRelease}
+			label={(item) => releaseName(item) || "Sem título"}
+			meta={(item) =>
+				[item.kind === "launch" ? "lançamento" : "novidade", item.published ? item.publishedAt : "rascunho"].join(" · ")
+			}
+		>
+			{(value, set) => {
+				const autoSlug = !value.slug || value.slug === slugify(releaseName(value));
+				const rename = (next: CollectionInput<"releases">) =>
+					set({ ...next, slug: autoSlug ? slugify(releaseName(next)) : next.slug });
+				return (
+					<>
+						<div className="grid-2">
+							<div className="field">
+								<label className="field__label" htmlFor="release-project">
+									Projeto
+								</label>
+								<select
+									id="release-project"
+									className="input"
+									value={value.project}
+									onChange={(event) => {
+										const project = projects.find((item) => item.id === event.target.value);
+										const keepTitle = value.title && !projects.some((item) => item.name === value.title);
+										rename({
+											...value,
+											project: event.target.value,
+											title: project && !keepTitle ? project.name : value.title,
+										});
+									}}
+								>
+									<option value="">Nenhum</option>
+									{projects.map((project) => (
+										<option key={project.id} value={project.id}>
+											{project.name}
+											{project.published ? "" : " (rascunho)"}
+										</option>
+									))}
+								</select>
+							</div>
+							<div className="field">
+								<label className="field__label" htmlFor="release-kind">
+									Tipo
+								</label>
+								<select
+									id="release-kind"
+									className="input"
+									value={value.kind}
+									onChange={(event) =>
+										set({ ...value, kind: event.target.value as CollectionInput<"releases">["kind"] })
+									}
+								>
+									{RELEASE_KINDS.map(([kind, text]) => (
+										<option key={kind} value={kind}>
+											{text}
+										</option>
+									))}
+								</select>
+							</div>
+						</div>
+						<div className="grid-2">
+							<TextField
+								label="Título"
+								hint="Normalmente o nome do projeto."
+								value={value.title}
+								onChange={(title) => rename({ ...value, title })}
+								required
+							/>
+							<TextField
+								label="Versão"
+								placeholder="26.10.3"
+								hint="Opcional. Aparece depois do título."
+								value={value.version}
+								onChange={(version) => rename({ ...value, version })}
+							/>
+						</div>
+						<div className="grid-2">
+							<TextField
+								label="Slug"
+								hint="Endereço: /pt/releases/<slug>/"
+								value={value.slug}
+								onChange={(slug) => set({ ...value, slug: slugify(slug) })}
+								required
+							/>
+							<TextField
+								label="Data"
+								type="date"
+								value={value.publishedAt}
+								onChange={(publishedAt) => set({ ...value, publishedAt })}
+								required
+							/>
+						</div>
+						<LocalizedField
+							label="Resumo"
+							hint="Uma ou duas frases: aparecem em Novidades e no texto da notificação."
+							multiline
+							rows={2}
+							value={value.summary}
+							onChange={(summary) => set({ ...value, summary })}
+						/>
+						<MarkdownEditor
+							label="Texto (português)"
+							value={value.body.pt}
+							onChange={(pt) => set({ ...value, body: { ...value.body, pt } })}
+						/>
+						<MarkdownEditor
+							label="Texto (inglês)"
+							value={value.body.en}
+							onChange={(en) => set({ ...value, body: { ...value.body, en } })}
+						/>
+						<ImageField
+							label="Capa"
+							value={value.cover}
+							onChange={(cover) => set({ ...value, cover })}
+							actions={<CoverGenerator defaults={releaseCover(value)} onUse={(cover) => set({ ...value, cover })} />}
+						/>
+						<div className="grid-2">
+							<Toggle
+								label="Publicado"
+								hint="Rascunhos ficam só aqui no painel."
+								checked={value.published}
+								onChange={(published) => set({ ...value, published })}
+							/>
+							<Toggle
+								label="Enviar notificação"
+								hint="Avisa quem ativou as notificações, assim que a página estiver no ar. Sai uma vez só."
+								checked={value.notify}
+								onChange={(notify) => set({ ...value, notify })}
+							/>
+						</div>
+					</>
+				);
+			}}
 		</CollectionEditor>
 	);
 }

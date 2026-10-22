@@ -8,7 +8,8 @@
 		"deploy": "wrangler deploy --minify",
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit",
-		"seed": "bun scripts/seed.ts"
+		"seed": "bun scripts/seed.ts",
+		"vapid": "bun scripts/vapid.ts"
 	},
 	"dependencies": {
 		"@cloudflare/workers-oauth-provider": "1.2.3",

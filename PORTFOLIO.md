@@ -27,6 +27,15 @@ supabase/        Migrations (Postgres, RLS, bucket de mídia)
 - **Ícones** vêm do [Skill Icons](https://skill-icons.alanreisanjo.workers.dev). Por padrão eles são tingidos com a cor de destaque de cada tema e mostram as cores originais no hover (configurável em _Painel → Aparência_). A cor de destaque também é escolhida lá, com uma variante para cada tema e aviso de contraste.
 - O cache é opcional: se o Upstash cair, a API lê direto do Supabase.
 
+## Novidades e notificações
+
+Em _Painel → Novidades_ ficam os anúncios: o lançamento de um projeto ou uma novidade em um projeto (ex.: **Skill Icons 26.10.3**). Cada anúncio tem resumo e texto em Markdown nos dois idiomas, página própria em `/pt/releases/<slug>/` e aparece no botão **Novidades** do topo do site. Ele não entra na lista de artigos.
+- Ao salvar um projeto publicado (novo, ou que acabou de ser publicado), o painel pergunta se você quer criar o anúncio e abre um já preenchido. No editor de um projeto existente, _Anunciar novidade neste projeto_ faz o mesmo para uma feature nova.
+- Pelo MCP, a coleção é `releases`. O servidor instrui o agente a perguntar se você quer um anúncio sempre que criar ou publicar um projeto.
+- **Notificações push**: no modal de Novidades, o visitante ativa as notificações do navegador (PC ou Android; no iPhone/iPad só funciona com o site adicionado à Tela de Início). Anúncios com _Enviar notificação_ ligado são enviados uma única vez, no idioma de quem se inscreveu, logo depois do deploy que publica a página deles. O job `notify` do workflow chama `POST /admin/push/send`, que só envia quando a página do anúncio já está no ar. Anúncios com mais de 7 dias não são enviados.
+
+Para ligar o push em produção, veja [Notificações push](#5-notificações-push). Sem essa configuração, o site continua mostrando as Novidades, só sem o botão de notificação.
+
 ## Chaves de API e servidor MCP
 
 Uma IA (ou um script) pode editar o site com as mesmas regras do painel: validação, slug único dos artigos e republicação automática.
@@ -39,6 +48,8 @@ Uma IA (ou um script) pode editar o site com as mesmas regras do painel: valida�
    ```
 
    O painel mostra o comando e o JSON para Cursor, Codex e Claude Desktop já preenchidos.
+
+Coleções: `projects`, `experience`, `stack`, `links`, `articles` e `releases` (Novidades).
 
 Ferramentas: `get_site_content`, `describe_schema`, `list_entries`, `get_entry`, `get_settings` e, com permissão de escrita, `create_entry`, `update_entry` (altera só os campos enviados), `delete_entry`, `reorder_entries`, `update_settings`, `upload_image_from_url` e `publish_site`. Uma chave "Só ler" não recebe as ferramentas de escrita.
 
@@ -101,6 +112,8 @@ Crie um API token com permissão _Edit Cloudflare Workers_. Se quiser a API em d
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`          | API → banco e storage                   |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | cache                                   |
 | `GH_DISPATCH_TOKEN`                                  | API → rebuild do site                   |
+| `VAPID_PRIVATE_KEY`                                  | notificações push (opcional)            |
+| `PORTFOLIO_API_KEY`                                  | envio das notificações após o deploy    |
 | `SUPABASE_DB_URL`                                    | aplicar migrations no deploy (opcional) |
 
 **Variables**:
@@ -115,6 +128,28 @@ Crie um API token com permissão _Edit Cloudflare Workers_. Se quiser a API em d
 
 E-mails com acesso ao painel e origens permitidas ficam em `apps/api/wrangler.jsonc` (`ADMIN_EMAILS`, `ALLOWED_ORIGINS`).
 
+### 5. Notificações push
+
+Opcional. A ordem importa: configure as chaves antes do deploy da API, para ela já subir com o push ligado.
+1. **Chaves VAPID.** Já geradas: a pública está em `VAPID_PUBLIC_KEY`, no `apps/api/wrangler.jsonc`. Para gerar um par novo, rode `bun --filter @portfolio/api vapid`. Gere só uma vez: com chaves novas, quem já se inscreveu deixa de receber.
+2. **Chave privada.** Em **Settings → Secrets and variables → Actions → New repository secret**, crie `VAPID_PRIVATE_KEY` com o valor que vem depois de `VAPID_PRIVATE_KEY=`. Ela nunca vai para o código.
+3. **Migration.** Com o secret `SUPABASE_DB_URL`, o deploy aplica `supabase/migrations/20261024000000_releases_push.sql` sozinho. Sem ele, rode esse arquivo no **SQL Editor** do Supabase antes do deploy, senão salvar uma Novidade dá erro.
+4. **Deploy.** Faça o merge na `main` (ou rode o workflow **Deploy** manualmente com _Also redeploy the API_). `PUBLIC_SITE_URL`, `VAPID_SUBJECT` e `ALLOWED_ORIGINS` já estão no `wrangler.jsonc`.
+5. **Chave do envio.** Com a API no ar, crie em _Painel → Chaves de API_ uma chave **Ler e editar** (ex.: `GitHub Actions`) e salve o `pk_…` como o secret `PORTFOLIO_API_KEY`. O job `notify` usa essa chave para chamar `POST /admin/push/send` depois de cada deploy do site.
+6. **Teste.**
+   1. No site, abra **Novidades → Avisar por notificação** e permita. No iPhone/iPad, antes adicione o site à Tela de Início (**Compartilhar → Adicionar à Tela de Início**) e abra por lá.
+   2. Em _Painel → Novidades_, confira se aparece "1 navegador inscrito".
+   3. Crie um anúncio com a data de hoje, **Publicado** e **Enviar notificação** ligados.
+   4. Em uns 2 minutos, quando o deploy terminar, a notificação chega.
+
+Se não chegar:
+- **Anúncio parado na fila:** _Painel → Novidades_ mostra "Na fila: …" e o link **Enviar agora**, que envia na hora.
+- **Log do envio:** em **Actions → Deploy → job `notify`**, procure:
+  - `"recipients"`: quantos navegadores receberam.
+  - `"waiting"`: a página ainda não estava no ar. O job tenta de novo por 2 minutos; depois, o anúncio sai no próximo deploy.
+  - `PORTFOLIO_API_KEY ... not set`: falta o secret do passo 5.
+- **Sem botão de notificação no site:** a API subiu sem `VAPID_PRIVATE_KEY`. Crie o secret e rode o **Deploy** com _Also redeploy the API_.
+
 ### Deploy
 
-Push na `main` roda: migrations (se mudaram) → testes + deploy da API (se `apps/api` ou `packages/shared` mudaram) → build e deploy do site. O workflow também roda por `repository_dispatch` (painel), por cron diário e manualmente.
+Push na `main` roda: migrations (se mudaram) → testes + deploy da API (se `apps/api` ou `packages/shared` mudaram) → build e deploy do site → envio das notificações dos anúncios novos. O workflow também roda por `repository_dispatch` (painel), por cron diário e manualmente.

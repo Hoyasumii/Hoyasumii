@@ -10,6 +10,7 @@ export interface Cache {
 export const cacheKeys = {
 	content: `portfolio:content:v${CONTENT_VERSION}`,
 	siteArticles: "portfolio:site-articles:v1",
+	releases: "portfolio:releases:v1",
 	devtoArticles: (username: string) => `portfolio:devto-articles:v2:${username.toLowerCase()}`,
 	devtoArticle: (username: string, slug: string) => `portfolio:devto-article:v2:${username.toLowerCase()}:${slug}`,
 };
