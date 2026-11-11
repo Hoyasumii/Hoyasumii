@@ -33,8 +33,8 @@ describe("color helpers", () => {
 
 describe("appearance settings", () => {
 	it("migrates documents saved with a single iconTint and no accent", async () => {
-		const { call, repository } = setup();
-		await repository.putSettings("appearance", { iconTint: "5fd3c4" } as never);
+		const { call, putSettings } = setup();
+		await putSettings("appearance", { iconTint: "5fd3c4" } as never);
 		const content = await data<Content>(await call("/content"));
 		expect(content.appearance).toEqual({
 			accent: defaultAccent,

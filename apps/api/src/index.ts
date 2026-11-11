@@ -1,12 +1,12 @@
 import { OAuthProvider } from "@cloudflare/workers-oauth-provider";
 import { createApp } from "./app";
-import { depsFromEnv } from "./container";
+import { runtimeFromEnv } from "./container";
 import type { Env } from "./env";
 import { authenticateToken } from "./lib/auth";
 import { publicOrigin } from "./lib/public-url";
 import { SCOPES } from "./routes/oauth";
 
-const app = createApp(depsFromEnv);
+const app = createApp(runtimeFromEnv);
 const handler = { fetch: app.fetch } as ExportedHandler<Env> & { fetch: NonNullable<ExportedHandler<Env>["fetch"]> };
 
 /**
@@ -30,7 +30,9 @@ function providerFor(origin: string): OAuthProvider<Env> {
 		clientIdMetadataDocumentEnabled: true,
 		resolveExternalToken: async ({ token, env }) => {
 			// A session outside ADMIN_EMAILS throws forbidden: for the MCP client it is just an invalid token.
-			const principal = await authenticateToken(depsFromEnv(env), token).catch(() => null);
+			const runtime = runtimeFromEnv(env);
+			await runtime.prepare();
+			const principal = await authenticateToken(runtime.adapters, token).catch(() => null);
 			return principal ? { props: { principal }, audience: resource } : null;
 		},
 	});

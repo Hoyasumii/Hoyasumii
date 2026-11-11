@@ -1,9 +1,11 @@
+import type { IRepositoryProvider } from "@afora/core/adapters";
 import { type Content, defaultCollections, type Project, type SiteArticle } from "@portfolio/shared";
 import { describe, expect, it, vi } from "vitest";
-import { describeError } from "../src/repositories/supabase";
+import type { Runtime } from "../src/container";
+import { describeError } from "../src/providers/supabase";
 import { SupabaseTokenVerifier } from "../src/services/auth";
 import { GitHubDispatchPublisher } from "../src/services/publisher";
-import { ADMIN, data, flush, STRANGER, setup } from "./helpers";
+import { ADMIN, data, flush, items, problem, STRANGER, setup } from "./helpers";
 
 const project = {
 	...defaultCollections.projects[0],
@@ -23,6 +25,24 @@ const article = {
 	published: true,
 };
 
+/** Counts the reads of the store (afora freezes repositories, so the provider is watched instead). */
+function spyOnReads(runtime: Runtime) {
+	const calls: unknown[] = [];
+	const provider = runtime.provider;
+	runtime.provider = {
+		...provider,
+		findMany: (...args) => {
+			calls.push(args);
+			return provider.findMany(...args);
+		},
+	} as IRepositoryProvider;
+	return { mock: { calls } };
+}
+
+function failingCounts(provider: IRepositoryProvider, error: Error): IRepositoryProvider {
+	return { ...provider, count: async () => Promise.reject(error) } as IRepositoryProvider;
+}
+
 describe("public content", () => {
 	it("serves the seeded content", async () => {
 		const { call } = setup();
@@ -35,8 +55,8 @@ describe("public content", () => {
 	});
 
 	it("is cached until something changes", async () => {
-		const { call, repository } = setup();
-		const list = vi.spyOn(repository, "list");
+		const { call, runtime } = setup();
+		const list = spyOnReads(runtime);
 		await call("/content");
 		const callsAfterFirst = list.mock.calls.length;
 		await call("/content");
@@ -45,6 +65,7 @@ describe("public content", () => {
 		await call("/admin/collections/projects", { method: "POST", token: ADMIN, json: project });
 		const content = await data<Content>(await call("/content"));
 		expect(content.projects.at(-1)?.name).toBe("New thing");
+		vi.restoreAllMocks();
 	});
 
 	it("hides unpublished projects", async () => {
@@ -72,11 +93,12 @@ describe("health", () => {
 	});
 
 	it("answers 503 with the reason when the database fails", async () => {
-		const { call, repository } = setup();
-		vi.spyOn(repository, "lastUpdatedAt").mockRejectedValue(new Error("Invalid API key"));
+		const { call, runtime } = setup();
+		runtime.provider = failingCounts(runtime.provider, new Error("Invalid API key"));
 		const response = await call("/health");
 		expect(response.status).toBe(503);
 		expect(await data(response)).toMatchObject({ ok: false, database: { ok: false, error: "Invalid API key" } });
+		vi.restoreAllMocks();
 	});
 });
 
@@ -122,9 +144,23 @@ describe("collections", () => {
 			json: { name: "" },
 		});
 		expect(response.status).toBe(400);
-		const body = (await response.json()) as { error: { code: string; issues: unknown[] } };
-		expect(body.error.code).toBe("bad_request");
-		expect(body.error.issues.length).toBeGreaterThan(0);
+		const body = await problem(response);
+		expect(body.title).toBe("InvalidUseCaseInput");
+		expect(body.issues?.some((issue) => issue.path[0] === "name")).toBe(true);
+	});
+
+	it("serves its OpenAPI document", async () => {
+		const { call } = setup();
+		const document = await data<{ paths: Record<string, unknown> }>(await call("/openapi.json"));
+		expect(Object.keys(document.paths)).toEqual(
+			expect.arrayContaining(["/content", "/admin/collections/projects/{id}", "/admin/settings/seo"]),
+		);
+	});
+
+	it("answers errors as problem details", async () => {
+		const { call } = setup();
+		expect((await problem(await call("/admin/collections/nope", { token: ADMIN }))).status).toBe(404);
+		expect((await problem(await call("/admin/me"))).title).toBe("Unauthenticated");
 	});
 
 	it("404s unknown collections and entries", async () => {
@@ -152,9 +188,9 @@ describe("collections", () => {
 		);
 		expect(updated).toMatchObject({ id: created.id, name: "Renamed", position: created.position });
 
-		const list = await data<Project[]>(await call("/admin/collections/projects", { token: ADMIN }));
+		const list = await items<Project>(await call("/admin/collections/projects", { token: ADMIN }));
 		const reversed = list.map((p) => p.id).reverse();
-		const reordered = await data<Project[]>(
+		const reordered = await items<Project>(
 			await call("/admin/collections/projects/order", { method: "PUT", token: ADMIN, json: { ids: reversed } }),
 		);
 		expect(reordered.map((p) => p.id)).toEqual(reversed);
@@ -223,7 +259,7 @@ describe("articles", () => {
 			json: { ...article, slug: "draft", published: false },
 		});
 
-		const list = await data<{ slug: string; source: string }[]>(await ctx.call("/articles"));
+		const list = await items<{ slug: string; source: string }>(await ctx.call("/articles"));
 		expect(list.map((a) => [a.slug, a.source])).toEqual([
 			["hello-world", "site"],
 			["from-devto", "devto"],
@@ -241,7 +277,7 @@ describe("articles", () => {
 		const ctx = setup();
 		vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response("down", { status: 503 }));
 		await ctx.call("/admin/collections/articles", { method: "POST", token: ADMIN, json: article });
-		const list = await data<unknown[]>(await ctx.call("/articles"));
+		const list = await items(await ctx.call("/articles"));
 		expect(list).toHaveLength(1);
 		vi.restoreAllMocks();
 	});
@@ -275,7 +311,7 @@ describe("articles", () => {
 			token: ADMIN,
 			json: { enabled: true, url: "https://dev.to/someone" },
 		});
-		expect(await data<unknown[]>(await ctx.call("/articles"))).toHaveLength(1);
+		expect(await items(await ctx.call("/articles"))).toHaveLength(1);
 		expect(String(fetchMock.mock.calls.at(-1)?.[0])).toContain("username=someone");
 
 		fetchMock.mockClear();
@@ -284,7 +320,7 @@ describe("articles", () => {
 			token: ADMIN,
 			json: { enabled: false, url: "https://dev.to/someone" },
 		});
-		expect(await data<unknown[]>(await ctx.call("/articles"))).toHaveLength(0);
+		expect(await items(await ctx.call("/articles"))).toHaveLength(0);
 		expect((await ctx.call("/articles/from-devto")).status).toBe(404);
 		expect(fetchMock).not.toHaveBeenCalled();
 		vi.restoreAllMocks();
@@ -343,15 +379,13 @@ describe("supabase token verifier", () => {
 
 describe("publish", () => {
 	it("explains why GitHub refused the rebuild", async () => {
-		const { call, deps } = setup();
-		vi.spyOn(deps.publisher, "publish").mockRejectedValue(
-			new Error("403 Resource not accessible by personal access token"),
-		);
+		const { call, publisher } = setup();
+		vi.spyOn(publisher, "publish").mockRejectedValue(new Error("403 Resource not accessible by personal access token"));
 		const response = await call("/admin/publish", { method: "POST", token: ADMIN });
-		expect(response.status).toBe(502);
-		const body = (await response.json()) as { error: { code: string; message: string } };
-		expect(body.error.code).toBe("publish_failed");
-		expect(body.error.message).toContain("403 Resource not accessible");
+		expect(response.status).toBe(424);
+		const body = await problem(response);
+		expect(body.title).toBe("PublishFailed");
+		expect(body.detail).toContain("403 Resource not accessible");
 	});
 
 	it("adds a hint for the usual token mistakes", async () => {

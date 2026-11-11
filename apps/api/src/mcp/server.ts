@@ -1,3 +1,4 @@
+import { Exception, toOpenAPI } from "@afora/core";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
@@ -9,11 +10,17 @@ import {
 	settingsSchemas,
 } from "@portfolio/shared";
 import { z } from "zod";
-import type { Deps } from "../container";
-import { HttpError } from "../lib/errors";
-import type { AdminService } from "../services/admin";
+import { entryOf, findEntity, getContent } from "../domain/content";
+import { uploadFromUrl } from "../domain/media";
+import type { Services } from "../domain/services";
+import { Publish } from "../domain/use-cases/admin";
+import { collectionOperations } from "../domain/use-cases/collections";
+import { readSettings, saveSettings } from "../domain/use-cases/settings";
+import { aforaPrincipal } from "../lib/auth";
+import { deepMerge } from "../lib/merge";
 import type { Principal } from "../services/auth";
 
+// The MCP SDK describes tool inputs with Zod; the values themselves are validated by afora.
 const collection = z
 	.enum(collectionNames as [CollectionName, ...CollectionName[]])
 	.describe("projects, experience, stack (icon groups), links, articles or releases (release notes)");
@@ -61,10 +68,37 @@ function ok(value: unknown): CallToolResult {
 	return { content: [{ type: "text", text: JSON.stringify(value ?? null, null, 2) }] };
 }
 
+/** The issues of an invalid value, wherever afora put them on the exception. */
+function issuesOf(error: Exception): unknown {
+	for (let current: unknown = error; current instanceof Exception; current = current.cause) {
+		const issues = (current.details as { issues?: unknown } | undefined)?.issues;
+		if (Array.isArray(issues)) {
+			return issues.map(({ path, message }: { path: unknown; message: string }) => ({
+				path,
+				message: message.replace(/^Invalid value for property "[^"]*": /, ""),
+			}));
+		}
+	}
+	return undefined;
+}
+
+/** Errors the caller can act on (validation, not found, conflicts) are told; the rest is logged. */
+const TOLD = new Set([
+	"InvalidUseCaseInput",
+	"InvalidData",
+	"NotFound",
+	"SlugTaken",
+	"BadRequest",
+	"PublishFailed",
+	"RepositoryUniqueViolation",
+	"RepositoryEntityNotFound",
+]);
+
 function failure(error: unknown): CallToolResult {
-	if (error instanceof HttpError) {
-		const issues = error.issues ? `\n${JSON.stringify(error.issues, null, 2)}` : "";
-		return { isError: true, content: [{ type: "text", text: `${error.message}${issues}` }] };
+	if (error instanceof Exception && TOLD.has(error.name)) {
+		const issues = issuesOf(error);
+		const text = `${error.message}${issues ? `\n${JSON.stringify(issues, null, 2)}` : ""}`;
+		return { isError: true, content: [{ type: "text", text }] };
 	}
 	console.error("MCP tool failed", error);
 	return { isError: true, content: [{ type: "text", text: "Something went wrong on the server" }] };
@@ -79,9 +113,17 @@ async function run(work: () => Promise<unknown>): Promise<CallToolResult> {
 }
 
 /** One MCP server per request: the transport is stateless, so nothing is kept between calls. */
-export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin: AdminService; principal: Principal }) {
+export function createMcpServer({ services, principal }: { services: Services; principal: Principal }) {
 	const server = new McpServer({ name: "hoyasumii-portfolio", version: "1.0.0" }, { instructions: INSTRUCTIONS });
 	const readOnly = { readOnlyHint: true, openWorldHint: false } as const;
+
+	// Tools run the same use cases as the HTTP API, with the caller's identity as their context.
+	const { subject, claims } = aforaPrincipal(principal);
+	const context = { services, subject, ...claims };
+	const actor = claims.actor;
+	// biome-ignore lint/suspicious/noExplicitAny: any use case of a collection, called with its own input
+	const call = async (UseCase: any, input: object) => new UseCase(input, { context }).execute();
+	const operations = (name: CollectionName) => collectionOperations[name];
 
 	server.registerTool(
 		"get_site_content",
@@ -90,7 +132,7 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 			description: "Everything the public site shows: settings plus published projects, experience, stack and links.",
 			annotations: readOnly,
 		},
-		() => run(() => deps.content.getPublic()),
+		() => run(() => getContent(services)),
 	);
 
 	server.registerTool(
@@ -102,13 +144,13 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 			annotations: readOnly,
 		},
 		({ target }) =>
-			run(async () => {
-				const schema =
+			run(async () =>
+				toOpenAPI(
 					target in collectionSchemas
 						? collectionSchemas[target as CollectionName]
-						: settingsSchemas[target as SettingsKey];
-				return z.toJSONSchema(schema);
-			}),
+						: settingsSchemas[target as SettingsKey],
+				),
+			),
 	);
 
 	server.registerTool(
@@ -119,7 +161,7 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 			inputSchema: { collection },
 			annotations: readOnly,
 		},
-		({ collection }) => run(() => admin.list(collection)),
+		({ collection }) => run(async () => (await call(operations(collection).list, {})).items),
 	);
 
 	server.registerTool(
@@ -130,7 +172,7 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 			inputSchema: { collection, id: z.string() },
 			annotations: readOnly,
 		},
-		({ collection, id }) => run(() => admin.get(collection, id)),
+		({ collection, id }) => run(() => call(operations(collection).get, { id })),
 	);
 
 	server.registerTool(
@@ -141,7 +183,7 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 			inputSchema: { key: settingsKey },
 			annotations: readOnly,
 		},
-		({ key }) => run(() => admin.getSettings(key)),
+		({ key }) => run(() => readSettings(services, key)),
 	);
 
 	if (principal.scope !== "write") return server;
@@ -155,7 +197,7 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 			annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
 		},
 		async ({ collection, data }) => {
-			const result = await run(() => admin.create(collection, data));
+			const result = await run(() => call(operations(collection).create, data));
 			if (collection === "projects" && !result.isError) result.content.push({ type: "text", text: RELEASE_HINT });
 			return result;
 		},
@@ -171,7 +213,10 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 		},
 		async ({ collection, id, data }) => {
-			const result = await run(() => admin.patch(collection, id, data));
+			const result = await run(async () => {
+				const { id: _id, position: _position, ...current } = entryOf(await findEntity(collection, id));
+				return call(operations(collection).update, { ...deepMerge(current, data), id });
+			});
 			if (collection === "projects" && data.published === true && !result.isError) {
 				result.content.push({ type: "text", text: RELEASE_HINT });
 			}
@@ -187,7 +232,7 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 			inputSchema: { collection, id: z.string() },
 			annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
 		},
-		({ collection, id }) => run(() => admin.remove(collection, id)),
+		({ collection, id }) => run(() => call(operations(collection).remove, { id })),
 	);
 
 	server.registerTool(
@@ -198,7 +243,7 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 			inputSchema: { collection, ids: z.array(z.string()).min(1) },
 			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 		},
-		({ collection, ids }) => run(() => admin.reorder(collection, ids)),
+		({ collection, ids }) => run(async () => (await call(operations(collection).reorder, { ids })).items),
 	);
 
 	server.registerTool(
@@ -209,7 +254,8 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 			inputSchema: { key: settingsKey, data: fields },
 			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 		},
-		({ key, data }) => run(() => admin.patchSettings(key, data)),
+		({ key, data }) =>
+			run(async () => saveSettings(services, actor, key, deepMerge(await readSettings(services, key), data))),
 	);
 
 	server.registerTool(
@@ -221,7 +267,7 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 			inputSchema: { url: z.string().url() },
 			annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
 		},
-		({ url }) => run(() => admin.uploadFromUrl(url)),
+		({ url }) => run(() => uploadFromUrl(services, url)),
 	);
 
 	server.registerTool(
@@ -231,11 +277,7 @@ export function createMcpServer({ deps, admin, principal }: { deps: Deps; admin:
 			description: "Rebuilds the site now. Not needed after edits (they publish by themselves).",
 			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 		},
-		() =>
-			run(async () => {
-				await admin.publish();
-				return { queued: true };
-			}),
+		() => run(() => call(Publish, {})),
 	);
 
 	return server;

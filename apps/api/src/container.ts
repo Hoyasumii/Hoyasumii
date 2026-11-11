@@ -1,50 +1,18 @@
+import { inMemoryProvider } from "@afora/core";
+import type { IRepositoryProvider } from "@afora/core/adapters";
 import { createClient } from "@supabase/supabase-js";
 import { Redis } from "@upstash/redis/cloudflare";
-import type { Cache } from "./cache/cache";
 import { MemoryCache } from "./cache/memory";
 import { UpstashCache } from "./cache/upstash";
+import { store } from "./domain/repositories";
+import { seedDefaults } from "./domain/seed";
+import type { Adapters, PushConfig } from "./domain/services";
 import type { Env } from "./env";
-import { type ApiKeyRepository, MemoryApiKeyRepository } from "./repositories/api-key-repository";
-import type { ContentRepository } from "./repositories/content-repository";
-import { MemoryContentRepository } from "./repositories/memory";
-import { MemoryPushRepository, type PushRepository } from "./repositories/push-repository";
-import { SupabaseContentRepository } from "./repositories/supabase";
-import { SupabaseApiKeyRepository } from "./repositories/supabase-api-keys";
-import { SupabasePushRepository } from "./repositories/supabase-push";
-import { ApiKeyService } from "./services/api-keys";
-import { ArticlesService } from "./services/articles";
-import { parseList, StaticTokenVerifier, SupabaseTokenVerifier, type TokenVerifier } from "./services/auth";
-import { ContentService } from "./services/content";
-import { GitHubDispatchPublisher, NoopPublisher, type Publisher } from "./services/publisher";
-import { type PushConfig, PushService } from "./services/push";
-import { ReleasesService } from "./services/releases";
-import type { MediaStorage } from "./storage/media-storage";
+import { SupabaseProvider } from "./providers/supabase";
+import { parseList, StaticTokenVerifier, SupabaseTokenVerifier } from "./services/auth";
+import { GitHubDispatchPublisher, NoopPublisher } from "./services/publisher";
 import { MemoryMediaStorage } from "./storage/memory";
 import { SupabaseMediaStorage } from "./storage/supabase";
-
-export type Deps = {
-	repository: ContentRepository;
-	apiKeyRepository: ApiKeyRepository;
-	pushRepository: PushRepository;
-	cache: Cache;
-	storage: MediaStorage;
-	verifier: TokenVerifier;
-	publisher: Publisher;
-	content: ContentService;
-	articles: ArticlesService;
-	releases: ReleasesService;
-	push: PushService;
-	apiKeys: ApiKeyService;
-	adminEmails: string[];
-	/** Which adapters are in use, reported by /health. */
-	mode: { database: "supabase" | "memory"; cache: "upstash" | "memory" };
-	allowedOrigins: string[];
-};
-
-export type Adapters = Pick<
-	Deps,
-	"repository" | "apiKeyRepository" | "pushRepository" | "cache" | "storage" | "verifier" | "publisher"
->;
 
 /** Push is on when the VAPID keys and the site's address are all set. */
 export function pushConfig(env: Env): PushConfig {
@@ -58,98 +26,96 @@ export function pushConfig(env: Env): PushConfig {
 	};
 }
 
-export function assemble(
-	adapters: Adapters,
-	env: Env,
-	mode: Deps["mode"] = { database: "memory", cache: "memory" },
-	fetcher?: typeof fetch,
-): Deps {
-	const content = new ContentService(adapters.repository, adapters.cache);
-	const releases = new ReleasesService(adapters.repository, adapters.cache);
-	return {
-		mode,
-		...adapters,
-		content,
-		releases,
-		push: new PushService(adapters.pushRepository, releases, content, pushConfig(env), fetcher),
-		articles: new ArticlesService(adapters.repository, adapters.cache, content),
-		apiKeys: new ApiKeyService(adapters.apiKeyRepository, adapters.cache),
-		adminEmails: parseList(env.ADMIN_EMAILS),
-		allowedOrigins: parseList(env.ALLOWED_ORIGINS),
-	};
-}
-
 /** Development token accepted when the API runs without Supabase (`wrangler dev` with no secrets). */
 export const DEV_TOKEN = "dev-admin-token";
 /** Password for dev@localhost on the OAuth consent page, in the same mode. */
 export const DEV_PASSWORD = "dev";
 
-let memoryAdapters: Adapters | undefined;
-let cached: { env: Env; deps: Deps } | undefined;
+/**
+ * What runs the API: the adapters, and the provider the repositories write through. Every request
+ * awaits `prepare()` (the seed of the in-memory store, once) before it reaches a use case.
+ */
+export type Runtime = { adapters: Adapters; provider: IRepositoryProvider; prepare: () => Promise<void> };
+
+/** Uses `runtime`: points the repositories at its provider. */
+export function activate(runtime: Runtime): Runtime {
+	store.use(runtime.provider);
+	return runtime;
+}
 
 /**
- * Builds the dependencies from the bindings, once per isolate. Without Supabase or Upstash
- * credentials it falls back to in-memory adapters, so `wrangler dev` works out of the box.
+ * An in-memory store with the default content, as `wrangler dev` without secrets and the tests use.
+ * It is seeded on the first `prepare()`, once its provider is the one in use.
  */
-export function depsFromEnv(env: Env): Deps {
-	if (cached?.env === env) return cached.deps;
+export function memoryStore(): Pick<Runtime, "provider" | "prepare"> {
+	const provider = inMemoryProvider();
+	let seeded: Promise<void> | undefined;
+	const prepare = () => {
+		seeded ??= seedDefaults({ keepIds: true }).then(() => undefined);
+		return seeded;
+	};
+	return { provider, prepare };
+}
+
+let memory: ReturnType<typeof memoryStore> | undefined;
+let cached: { env: Env; runtime: Runtime } | undefined;
+
+/**
+ * Builds the runtime from the bindings, once per isolate. Without Supabase or Upstash credentials
+ * it falls back to in-memory adapters, so `wrangler dev` works out of the box.
+ */
+export function runtimeFromEnv(env: Env): Runtime {
+	if (cached?.env === env) return activate(cached.runtime);
 
 	const hasSupabase = Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
 	const hasUpstash = Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN);
+	const fetcher: typeof fetch = (...args) => fetch(...args);
 
-	let adapters: Adapters;
+	let provider: IRepositoryProvider;
+	let prepare = () => Promise.resolve();
+	let base: Pick<Adapters, "storage" | "verifier">;
 	if (hasSupabase) {
 		const connect = () =>
 			createClient(env.SUPABASE_URL as string, env.SUPABASE_SERVICE_ROLE_KEY as string, {
 				auth: { persistSession: false, autoRefreshToken: false },
 			});
 		const supabase = connect();
-		adapters = {
-			repository: new SupabaseContentRepository(supabase),
-			apiKeyRepository: new SupabaseApiKeyRepository(supabase),
-			pushRepository: new SupabasePushRepository(supabase),
+		provider = new SupabaseProvider(supabase);
+		base = {
 			storage: new SupabaseMediaStorage(supabase, env.SUPABASE_STORAGE_BUCKET ?? "media"),
 			verifier: new SupabaseTokenVerifier(supabase, connect),
-			cache: new MemoryCache(),
-			publisher: new NoopPublisher(),
 		};
 	} else {
-		memoryAdapters ??= {
-			repository: new MemoryContentRepository(),
-			apiKeyRepository: new MemoryApiKeyRepository(),
-			pushRepository: new MemoryPushRepository(),
+		memory ??= memoryStore();
+		({ provider, prepare } = memory);
+		base = {
 			storage: new MemoryMediaStorage(),
 			verifier: new StaticTokenVerifier(
 				{ [DEV_TOKEN]: { id: "dev", email: "dev@localhost" } },
 				{ "dev@localhost": DEV_PASSWORD },
 			),
-			cache: new MemoryCache(),
-			publisher: new NoopPublisher(),
 		};
-		adapters = { ...memoryAdapters };
 	}
 
-	if (hasUpstash) {
-		adapters.cache = new UpstashCache(
-			new Redis({ url: env.UPSTASH_REDIS_REST_URL as string, token: env.UPSTASH_REDIS_REST_TOKEN as string }),
-		);
-	}
-	if (env.GITHUB_REPOSITORY && env.GITHUB_DISPATCH_TOKEN) {
-		adapters.publisher = new GitHubDispatchPublisher(env.GITHUB_REPOSITORY, env.GITHUB_DISPATCH_TOKEN);
-	}
-
-	const mode: Deps["mode"] = {
-		database: hasSupabase ? "supabase" : "memory",
-		cache: hasUpstash ? "upstash" : "memory",
+	const adapters: Adapters = {
+		...base,
+		cache: hasUpstash
+			? new UpstashCache(
+					new Redis({ url: env.UPSTASH_REDIS_REST_URL as string, token: env.UPSTASH_REDIS_REST_TOKEN as string }),
+				)
+			: new MemoryCache(),
+		publisher:
+			env.GITHUB_REPOSITORY && env.GITHUB_DISPATCH_TOKEN
+				? new GitHubDispatchPublisher(env.GITHUB_REPOSITORY, env.GITHUB_DISPATCH_TOKEN)
+				: new NoopPublisher(),
+		push: pushConfig(env),
+		fetcher,
+		adminEmails: parseList(hasSupabase ? env.ADMIN_EMAILS : (env.ADMIN_EMAILS ?? "dev@localhost")),
+		allowedOrigins: parseList(env.ALLOWED_ORIGINS),
+		mode: { database: hasSupabase ? "supabase" : "memory", cache: hasUpstash ? "upstash" : "memory" },
 	};
-	const deps = assemble(
-		adapters,
-		{
-			...env,
-			ADMIN_EMAILS: hasSupabase ? env.ADMIN_EMAILS : (env.ADMIN_EMAILS ?? "dev@localhost"),
-		},
-		mode,
-	);
-	cached = { env, deps };
-	return deps;
+
+	const runtime = activate({ adapters, provider, prepare });
+	cached = { env, runtime };
+	return runtime;
 }
