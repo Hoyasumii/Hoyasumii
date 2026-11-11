@@ -1,57 +1,125 @@
-import { z } from "zod";
+import {
+	BooleanProperty,
+	DateProperty,
+	Email,
+	enumOf,
+	listOf,
+	optionalOf,
+	blueprintOf as plainBlueprintOf,
+	propertyOf,
+	type StandardSchemaV1,
+	StringProperty,
+	Text,
+} from "@afora/core";
+import { Type } from "typebox";
+
+/*
+ * Every schema here is an @afora/core blueprint: it validates and normalizes a value, rejects keys it
+ * does not declare and implements Standard Schema V1, so any validator that takes one takes it.
+ * `safeParse(value)` returns `{ value }` or `{ issues }` and never throws.
+ */
+
+/** The value a schema gives back once it accepted an input. */
+export type Infer<Schema extends StandardSchemaV1> = Mutable<StandardSchemaV1.InferOutput<Schema>>;
+type Mutable<T> = T extends readonly (infer Item)[]
+	? Mutable<Item>[]
+	: T extends object
+		? { -readonly [Key in keyof T]: Mutable<T[Key]> }
+		: T;
+
+/** One problem with a value, as the API reports it: where, what kind and what to fix. */
+export type SchemaIssue = { path: (string | number)[]; code: string; message: string };
+
+/** A string property that also passes `test`, failing with `message` (the panel shows it as is). */
+function checkedString(
+	name: string,
+	test: (value: string) => boolean,
+	message: string,
+	{ min, max, trim = false }: { min?: number; max?: number; trim?: boolean } = {},
+) {
+	return propertyOf({
+		name,
+		schema: Type.String({ minLength: min, maxLength: max }),
+		preHandle: trim ? (value) => value.trim() : undefined,
+		afterHandle: (value) => {
+			if (!test(value)) throw new Error(message);
+			return value;
+		},
+	});
+}
+
+function isUrl(value: string): boolean {
+	try {
+		return new URL(value).host !== "" || value.startsWith("mailto:");
+	} catch {
+		return false;
+	}
+}
 
 export const locales = ["pt", "en"] as const;
-export const localeSchema = z.enum(locales);
-export type Locale = z.infer<typeof localeSchema>;
+export const localeSchema = enumOf(locales, { name: "locale" });
+export type Locale = (typeof locales)[number];
 
-export const localized = z.object({
-	pt: z.string(),
-	en: z.string(),
-});
-export type Localized = z.infer<typeof localized>;
+export const localized = plainBlueprintOf((ctx) => ({
+	pt: ctx.string,
+	en: ctx.string,
+}));
+export type Localized = Infer<typeof localized>;
 
-const optionalUrl = z.union([z.literal(""), z.url()]);
-const iconName = z.string().trim().min(1).max(64);
+const optionalUrl = checkedString(
+	"optionalUrl",
+	(value) => value === "" || isUrl(value),
+	"Use a full URL or leave it empty",
+	{
+		max: 2048,
+	},
+);
+const iconName = Text.with({ max: 64 });
+const required = StringProperty.with({ min: 1 });
 /**
  * How Skill Icons are colored: "accent" follows the site's accent color in each theme, a hex
  * color without "#" tints them all the same, and an empty string keeps their original colors.
  */
-export const tintSchema = z.union([z.literal("accent"), z.string().regex(/^([0-9a-f]{6})?$/)]);
+export const tintSchema = checkedString(
+	"tint",
+	(value) => /^(accent|[0-9a-f]{6})?$/.test(value),
+	'Use "accent", 6 hex digits without # or leave it empty',
+);
 
 /* ----------------------------------------------------------------------------
  * Settings: single documents, edited as a whole.
  * ------------------------------------------------------------------------- */
 
-export const profileSchema = z.object({
-	name: z.string().min(1),
-	handle: z.string(),
+export const profileSchema = plainBlueprintOf((ctx) => ({
+	name: required,
+	handle: ctx.string,
 	role: localized,
-	location: z.string(),
-	timeZone: z.string().min(1),
+	location: ctx.string,
+	timeZone: required,
 	headline: localized,
 	about: localized,
 	avatar: optionalUrl,
-	email: z.email(),
-	available: z.boolean(),
+	email: Email,
+	available: ctx.boolean,
 	availability: localized,
-});
+}));
 
-export const seoSchema = z.object({
-	title: z.string(),
+export const seoSchema = plainBlueprintOf((ctx) => ({
+	title: ctx.string,
 	description: localized,
-	/** Browser tab icon. Empty keeps the site's built-in favicon. */
-	favicon: optionalUrl.default(""),
-	/** Cover shown when a link to the site is shared (Open Graph and X cards); 1200×630 works best. */
-	image: optionalUrl.default(""),
-	keywords: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
-	/** X (Twitter) handle, without "@". */
-	twitter: z
-		.string()
-		.regex(/^[A-Za-z0-9_]{0,15}$/, "Use the handle without @")
-		.default(""),
-});
+	/** Browser tab icon. Empty keeps the site's built-in favicon. Defaults to "". */
+	favicon: optionalOf(optionalUrl),
+	/** Cover shown when a link to the site is shared (Open Graph and X cards); 1200×630 works best. Defaults to "". */
+	image: optionalOf(optionalUrl),
+	/** Defaults to []. */
+	keywords: optionalOf(listOf(Text.with({ max: 40 }), { maxItems: 20 })),
+	/** X (Twitter) handle, without "@". Defaults to "". */
+	twitter: optionalOf(
+		checkedString("twitter", (value) => /^[A-Za-z0-9_]{0,15}$/.test(value), "Use the handle without @"),
+	),
+}));
 
-const hexColor = z.string().regex(/^[0-9a-f]{6}$/, "Use 6 hex digits without #");
+const hexColor = checkedString("hexColor", (value) => /^[0-9a-f]{6}$/.test(value), "Use 6 hex digits without #");
 
 /** The site's accent color in each theme (hex, no "#"). */
 export const defaultAccent = { light: "d4441c", dark: "ff6a3d" };
@@ -60,45 +128,45 @@ export const themes = ["light", "dark"] as const;
 export type Theme = (typeof themes)[number];
 
 /** How Skill Icons look in one theme of the site. */
-export const iconStyleSchema = z.object({
+export const iconStyleSchema = plainBlueprintOf(() => ({
 	/** Which Skill Icons variant to draw: its light or dark tile. */
-	variant: z.enum(themes),
+	variant: enumOf(themes, { name: "theme" }),
 	/** "accent" (this theme's accent color), a hex color, or "" for the original colors. */
 	tint: tintSchema,
-});
-export type IconStyle = z.infer<typeof iconStyleSchema>;
+}));
+export type IconStyle = Infer<typeof iconStyleSchema>;
 
 export const defaultIconStyles: Record<Theme, IconStyle> = {
 	light: { variant: "light", tint: "accent" },
 	dark: { variant: "dark", tint: "accent" },
 };
 
-export const appearanceSchema = z.object({
-	/** Accent color, per theme: headings, numbers, links and buttons. */
-	accent: z.object({ light: hexColor, dark: hexColor }).default(defaultAccent),
-	/** Skill Icons style per theme of the site. */
-	icons: z.object({ light: iconStyleSchema, dark: iconStyleSchema }).default(defaultIconStyles),
-});
+export const appearanceSchema = plainBlueprintOf(() => ({
+	/** Accent color, per theme: headings, numbers, links and buttons. Defaults to defaultAccent. */
+	accent: optionalOf(plainBlueprintOf(() => ({ light: hexColor, dark: hexColor }))),
+	/** Skill Icons style per theme of the site. Defaults to defaultIconStyles. */
+	icons: optionalOf(plainBlueprintOf(() => ({ light: iconStyleSchema, dark: iconStyleSchema }))),
+}));
 
 const devtoPage = /^https?:\/\/(?:www\.)?dev\.to\/([A-Za-z0-9_]+)\/?$/;
 
-/** Whether the site lists the author's dev.to articles, and whose. */
-export const devtoSchema = z
-	.object({
-		enabled: z.boolean(),
-		/** Profile page, e.g. https://dev.to/username. */
-		url: z.union([
-			z.literal(""),
-			z.string().trim().regex(devtoPage, "Use the profile page, e.g. https://dev.to/username"),
-		]),
-	})
-	.refine((value) => !value.enabled || value.url !== "", {
-		message: "Set the dev.to page to show its articles",
-		path: ["url"],
-	});
+/**
+ * Whether the site lists the author's dev.to articles, and whose. Turning it on needs the page: see
+ * {@link settingsIssues}, which the API checks on top of this schema.
+ */
+export const devtoSchema = plainBlueprintOf((ctx) => ({
+	enabled: ctx.boolean,
+	/** Profile page, e.g. https://dev.to/username. */
+	url: checkedString(
+		"devtoPage",
+		(value) => value === "" || devtoPage.test(value),
+		"Use the profile page, e.g. https://dev.to/username",
+		{ trim: true },
+	),
+}));
 
 /** The dev.to username whose articles the site lists, or null when dev.to is off. */
-export function devtoUsername(devto: Pick<z.infer<typeof devtoSchema>, "enabled" | "url">): string | null {
+export function devtoUsername(devto: Pick<Infer<typeof devtoSchema>, "enabled" | "url">): string | null {
 	if (!devto.enabled) return null;
 	return devtoPage.exec(devto.url.trim())?.[1] ?? null;
 }
@@ -111,6 +179,71 @@ export const settingsSchemas = {
 } as const;
 
 export type SettingsKey = keyof typeof settingsSchemas;
+
+/** `T` with the keys `K`, optional in the schema, always set (to their defaults). */
+type Defaulted<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: Exclude<T[P], undefined> };
+
+export type Settings = {
+	profile: Infer<typeof profileSchema>;
+	seo: Defaulted<Infer<typeof seoSchema>, "favicon" | "image" | "keywords" | "twitter">;
+	appearance: Defaulted<Infer<typeof appearanceSchema>, "accent" | "icons">;
+	devto: Infer<typeof devtoSchema>;
+};
+export type Profile = Settings["profile"];
+export type Seo = Settings["seo"];
+export type Appearance = Settings["appearance"];
+export type DevTo = Settings["devto"];
+
+/** Values of the fields a settings document may leave out. */
+function settingsDefaults(key: SettingsKey): Record<string, unknown> {
+	switch (key) {
+		case "seo":
+			return { favicon: "", image: "", keywords: [], twitter: "" };
+		case "appearance":
+			return { accent: structuredClone(defaultAccent), icons: structuredClone(defaultIconStyles) };
+		default:
+			return {};
+	}
+}
+
+/** Checks a schema cannot express: dev.to needs its page to be turned on. */
+export function settingsIssues<K extends SettingsKey>(
+	key: K,
+	value: Settings[K] | Infer<(typeof settingsSchemas)[K]>,
+): SchemaIssue[] {
+	if (key === "devto") {
+		const devto = value as DevTo;
+		if (devto.enabled && devto.url === "") {
+			return [{ path: ["url"], code: "invalid_value", message: "Set the dev.to page to show its articles" }];
+		}
+	}
+	return [];
+}
+
+/**
+ * Validates a settings document and fills the fields it left out with their defaults: `{ value }`,
+ * or `{ issues }` with every problem.
+ */
+export function parseSettings<K extends SettingsKey>(
+	key: K,
+	input: unknown,
+): { value: Settings[K]; issues?: undefined } | { value?: undefined; issues: SchemaIssue[] } {
+	const parsed = settingsSchemas[key].safeParse(input);
+	if (parsed.issues) {
+		return {
+			issues: parsed.issues.map(({ path, code, message }) => ({
+				path: [...path],
+				code,
+				message: message.replace(/^Invalid value for property "[^"]*": /, ""),
+			})),
+		};
+	}
+	const defined = Object.fromEntries(Object.entries(parsed.value as object).filter(([, field]) => field !== undefined));
+	const value = structuredClone({ ...settingsDefaults(key), ...defined }) as Settings[K];
+	const issues = settingsIssues(key, value);
+	return issues.length > 0 ? { issues } : { value };
+}
+
 /**
  * Appearance documents saved before per-theme icon styles had one `iconTint` for both themes, with
  * each theme drawing its own variant. Keep that look.
@@ -129,84 +262,80 @@ function migrateAppearance(value: unknown): unknown {
  * defaults. A document that no longer matches the schema is returned as stored.
  */
 export function normalizeSettings<K extends SettingsKey>(key: K, value: unknown): Settings[K] {
-	const parsed = settingsSchemas[key].safeParse(key === "appearance" ? migrateAppearance(value) : value);
-	return (parsed.success ? parsed.data : value) as Settings[K];
+	const parsed = parseSettings(key, key === "appearance" ? migrateAppearance(value) : value);
+	return (parsed.issues ? value : parsed.value) as Settings[K];
 }
 
 export const settingsKeys = Object.keys(settingsSchemas) as SettingsKey[];
-export type Settings = { [K in SettingsKey]: z.infer<(typeof settingsSchemas)[K]> };
-export type Profile = Settings["profile"];
-export type Seo = Settings["seo"];
-export type Appearance = Settings["appearance"];
-export type DevTo = Settings["devto"];
 
 /* ----------------------------------------------------------------------------
  * Collections: ordered lists of entries, edited one entry at a time.
  * ------------------------------------------------------------------------- */
 
-export const projectInput = z.object({
-	name: z.string().min(1),
+export const projectInput = plainBlueprintOf((ctx) => ({
+	name: required,
 	kind: localized,
-	year: z.string(),
+	year: ctx.string,
 	summary: localized,
 	cover: optionalUrl,
-	stack: z.array(iconName),
-	featured: z.boolean(),
-	published: z.boolean(),
-	links: z.object({
+	stack: listOf(iconName),
+	featured: ctx.boolean,
+	published: ctx.boolean,
+	links: plainBlueprintOf(() => ({
 		repo: optionalUrl,
 		site: optionalUrl,
 		docs: optionalUrl,
 		npm: optionalUrl,
-	}),
+	})),
 	/** Sub-packages or modules, rendered as a tree under the project. */
-	parts: z.array(
-		z.object({
-			name: z.string().min(1),
+	parts: listOf(
+		plainBlueprintOf(() => ({
+			name: required,
 			description: localized,
 			url: optionalUrl,
-		}),
+		})),
 	),
-});
+}));
 
-export const experienceInput = z.object({
-	company: z.string().min(1),
+export const experienceInput = plainBlueprintOf((ctx) => ({
+	company: required,
 	role: localized,
-	start: z.string(),
+	start: ctx.string,
 	/** Empty means "present". */
-	end: z.string(),
+	end: ctx.string,
 	description: localized,
-});
+}));
 
-export const stackGroupInput = z.object({
+export const stackGroupInput = plainBlueprintOf(() => ({
 	title: localized,
-	icons: z.array(iconName),
-});
+	icons: listOf(iconName),
+}));
 
-export const linkInput = z.object({
-	label: z.string().min(1),
-	url: z.string().min(1),
-});
+export const linkInput = plainBlueprintOf(() => ({
+	label: required,
+	url: required,
+}));
 
-export const slugSchema = z
-	.string()
-	.min(1)
-	.max(120)
-	.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers and hyphens");
+export const slugSchema = checkedString(
+	"slug",
+	(value) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value),
+	"Use lowercase letters, numbers and hyphens",
+	{ min: 1, max: 120 },
+);
 
-export const articleInput = z.object({
-	title: z.string().min(1),
+export const articleInput = plainBlueprintOf((ctx) => ({
+	title: required,
 	slug: slugSchema,
 	lang: localeSchema,
-	excerpt: z.string(),
+	excerpt: ctx.string,
 	/** Markdown. */
-	body: z.string(),
+	body: ctx.string,
 	cover: optionalUrl,
-	tags: z.array(z.string().trim().min(1).max(32)).max(8),
+	tags: listOf(Text.with({ max: 32 }), { maxItems: 8 }),
 	/** ISO date (YYYY-MM-DD). */
-	publishedAt: z.iso.date(),
-	published: z.boolean(),
-});
+	publishedAt: DateProperty,
+	published: ctx.boolean,
+}));
 
 export const releaseKinds = ["launch", "feature"] as const;
 export type ReleaseKind = (typeof releaseKinds)[number];
@@ -216,14 +345,14 @@ export type ReleaseKind = (typeof releaseKinds)[number];
  * page and show in the site's "news" panel, never in the articles list, and can go out as a push
  * notification to whoever subscribed in the browser.
  */
-export const releaseInput = z.object({
+export const releaseInput = plainBlueprintOf((ctx) => ({
 	/** What was released, usually the project's name ("Skill Icons"). */
-	title: z.string().trim().min(1).max(80),
+	title: Text.with({ max: 80 }),
 	/** Optional version shown after the title ("26.10.3"). */
-	version: z.string().trim().max(32),
-	kind: z.enum(releaseKinds),
+	version: propertyOf({ name: "version", schema: Type.String({ maxLength: 32 }), preHandle: (value) => value.trim() }),
+	kind: enumOf(releaseKinds, { name: "releaseKind" }),
 	/** Id of the entry in `projects` this is about; empty when it is about none. */
-	project: z.string(),
+	project: ctx.string,
 	slug: slugSchema,
 	/** One or two sentences: shown in the news panel and as the notification text. */
 	summary: localized,
@@ -231,11 +360,11 @@ export const releaseInput = z.object({
 	body: localized,
 	cover: optionalUrl,
 	/** ISO date (YYYY-MM-DD). */
-	publishedAt: z.iso.date(),
-	published: z.boolean(),
+	publishedAt: DateProperty,
+	published: BooleanProperty,
 	/** Sends a push notification to subscribers once the release is live on the site. */
-	notify: z.boolean(),
-});
+	notify: BooleanProperty,
+}));
 
 export const collectionSchemas = {
 	projects: projectInput,
@@ -248,17 +377,17 @@ export const collectionSchemas = {
 
 export type CollectionName = keyof typeof collectionSchemas;
 export const collectionNames = Object.keys(collectionSchemas) as CollectionName[];
-export type CollectionInput<N extends CollectionName> = z.infer<(typeof collectionSchemas)[N]>;
+export type CollectionInput<N extends CollectionName> = Infer<(typeof collectionSchemas)[N]>;
 
 /** What the API stores and returns for every collection entry. */
 export type Entry<T> = T & { id: string; position: number };
 
-export type Project = Entry<z.infer<typeof projectInput>>;
-export type Experience = Entry<z.infer<typeof experienceInput>>;
-export type StackGroup = Entry<z.infer<typeof stackGroupInput>>;
-export type Link = Entry<z.infer<typeof linkInput>>;
-export type SiteArticle = Entry<z.infer<typeof articleInput>>;
-export type Release = Entry<z.infer<typeof releaseInput>>;
+export type Project = Entry<Infer<typeof projectInput>>;
+export type Experience = Entry<Infer<typeof experienceInput>>;
+export type StackGroup = Entry<Infer<typeof stackGroupInput>>;
+export type Link = Entry<Infer<typeof linkInput>>;
+export type SiteArticle = Entry<Infer<typeof articleInput>>;
+export type Release = Entry<Infer<typeof releaseInput>>;
 
 /** How a release is named everywhere: "Skill Icons 26.10.3". */
 export function releaseName(release: Pick<Release, "title" | "version">): string {
@@ -267,9 +396,9 @@ export function releaseName(release: Pick<Release, "title" | "version">): string
 
 export type Collections = { [N in CollectionName]: Entry<CollectionInput<N>>[] };
 
-export const reorderSchema = z.object({
-	ids: z.array(z.string().min(1)).min(1),
-});
+export const reorderSchema = plainBlueprintOf(() => ({
+	ids: listOf(required, { minItems: 1 }),
+}));
 
 /* ----------------------------------------------------------------------------
  * Public content: everything the website renders, in one response.
@@ -335,11 +464,11 @@ export type Article = ArticleSummary & ({ format: "markdown"; body: string } | {
 export const apiKeyScopes = ["read", "write"] as const;
 export type ApiKeyScope = (typeof apiKeyScopes)[number];
 
-export const apiKeyCreateSchema = z.object({
-	name: z.string().trim().min(1).max(60),
-	scope: z.enum(apiKeyScopes),
-});
-export type ApiKeyCreate = z.infer<typeof apiKeyCreateSchema>;
+export const apiKeyCreateSchema = plainBlueprintOf(() => ({
+	name: Text.with({ max: 60 }),
+	scope: enumOf(apiKeyScopes, { name: "apiKeyScope" }),
+}));
+export type ApiKeyCreate = Infer<typeof apiKeyCreateSchema>;
 
 /** What the API returns about a key; the key itself is only shown once, on creation. */
 export type ApiKey = {
@@ -372,20 +501,33 @@ export type McpServer = { url: string };
  * Web Push: visitors subscribe in the browser and get a notification for each new release.
  * ------------------------------------------------------------------------- */
 
-const base64url = /^[A-Za-z0-9_-]+={0,2}$/;
+const base64url = "^[A-Za-z0-9_-]+={0,2}$";
+
+const pushEndpoint = checkedString(
+	"pushEndpoint",
+	(value) => {
+		try {
+			return new URL(value).protocol === "https:";
+		} catch {
+			return false;
+		}
+	},
+	"Use an https:// URL",
+	{ max: 2048 },
+);
 
 /** What a browser's PushSubscription.toJSON() gives, plus the language to notify in. */
-export const pushSubscriptionSchema = z.object({
-	endpoint: z.url({ protocol: /^https$/ }).max(2048),
-	keys: z.object({
-		p256dh: z.string().regex(base64url).max(256),
-		auth: z.string().regex(base64url).max(64),
-	}),
+export const pushSubscriptionSchema = plainBlueprintOf(() => ({
+	endpoint: pushEndpoint,
+	keys: plainBlueprintOf(() => ({
+		p256dh: StringProperty.with({ pattern: base64url, max: 256 }),
+		auth: StringProperty.with({ pattern: base64url, max: 64 }),
+	})),
 	locale: localeSchema,
-});
-export type PushSubscriptionInput = z.infer<typeof pushSubscriptionSchema>;
+}));
+export type PushSubscriptionInput = Infer<typeof pushSubscriptionSchema>;
 
-export const pushUnsubscribeSchema = pushSubscriptionSchema.pick({ endpoint: true });
+export const pushUnsubscribeSchema = plainBlueprintOf(() => ({ endpoint: pushEndpoint }));
 
 /** The VAPID public key browsers subscribe with; null while push is not configured. */
 export type PushKey = { publicKey: string | null };

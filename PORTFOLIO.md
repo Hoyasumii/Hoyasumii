@@ -4,8 +4,8 @@ Portfólio + painel de conteúdo. Monorepo com Bun workspaces, na raiz deste rep
 
 ```
 apps/web         Next.js 16, export estático → GitHub Pages (site + painel em /admin)
-apps/api         Hono no Cloudflare Workers (conteúdo, artigos, uploads, publicação)
-packages/shared  Contrato zod, conteúdo padrão e client tipado da API
+apps/api         @afora/core + @afora/hono no Cloudflare Workers (conteúdo, artigos, uploads, publicação)
+packages/shared  Blueprints @afora/core (contrato), conteúdo padrão e client tipado da API
 supabase/        Migrations (Postgres, RLS, bucket de mídia)
 ```
 
@@ -26,6 +26,20 @@ supabase/        Migrations (Postgres, RLS, bucket de mídia)
 - **Artigos** podem ser escritos no painel (Markdown com prévia) ou vir do dev.to. Os dois aparecem juntos e são renderizados no próprio site. Um build diário traz os novos do dev.to. Em _Painel → dev.to_ dá para desligar essa parte ou trocar a página de onde eles vêm.
 - **Ícones** vêm do [Skill Icons](https://skill-icons.alanreisanjo.workers.dev). Por padrão eles são tingidos com a cor de destaque de cada tema e mostram as cores originais no hover (configurável em _Painel → Aparência_). A cor de destaque também é escolhida lá, com uma variante para cada tema e aviso de contraste.
 - O cache é opcional: se o Upstash cair, a API lê direto do Supabase.
+
+## API
+
+O domínio da API é escrito com [@afora/core](https://www.npmjs.com/package/@afora/core) e servido pelo sink [@afora/hono](https://www.npmjs.com/package/@afora/hono):
+
+- **Contrato** (`packages/shared/src/schema.ts`): blueprints afora (Standard Schema), compartilhados pela API e pelo painel. Chaves não declaradas são recusadas.
+- **Entidades e repositórios** (`apps/api/src/domain/entities.ts`, `repositories.ts`): uma entidade por coleção, mais settings, chaves de API e assinaturas de push. Gravam por um provider próprio sobre o Supabase (`apps/api/src/providers/supabase.ts`), nas tabelas de sempre, ou em memória sem credenciais.
+- **Use cases** (`apps/api/src/domain/use-cases/`): cada rota declara `route` e `access` (`admin:read`, `admin:write` ou `session`). O MCP chama os mesmos use cases.
+- **Respostas**: o corpo vem direto, sem envelope; listas vêm como `{ "items": [...] }`. Erros seguem `application/problem+json` (`title`, `status`, `detail` e, em 400, `issues` com `path` e `message`). O documento OpenAPI fica em `/openapi.json`.
+- Fora do afora, em Hono puro: `/health`, o upload multipart (`POST /admin/media`), o `/mcp` e o OAuth.
+
+Os testes do provider contra um Supabase de verdade são opcionais: `supabase start` e então
+`SUPABASE_TEST_URL=http://127.0.0.1:54321 SUPABASE_TEST_KEY=<service role key> bun --filter @portfolio/api test`
+(roda o kit de contrato do afora e um teste ponta a ponta nas tabelas do site).
 
 ## Novidades e notificações
 

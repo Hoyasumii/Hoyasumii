@@ -8,7 +8,8 @@ import {
 import { type Appearance, defaultAccent, inkOn } from "@portfolio/shared";
 import { type Context, Hono } from "hono";
 import type { AppEnv } from "../app";
-import { hashKey } from "../services/api-keys";
+import { hashKey } from "../domain/api-keys";
+import { getContent } from "../domain/content";
 import type { Principal } from "../services/auth";
 
 export const SCOPES = { read: ["mcp:read"], write: ["mcp:read", "mcp:write"] } as const;
@@ -159,9 +160,7 @@ function redirectTarget(redirectUri: string): string[] {
 
 async function renderConsent(c: Context<AppEnv>, pending: PendingConsent, handle: string, failed = false) {
 	// The site's accent color; the default one if the content can't be read right now.
-	const accent = await c
-		.get("deps")
-		.content.getPublic()
+	const accent = await getContent(c.get("services"))
 		.then((content) => content.appearance.accent)
 		.catch(() => defaultAccent);
 	return page(
@@ -213,9 +212,9 @@ export const oauthRoutes = new Hono<AppEnv>()
 				return Response.redirect(authorizationErrorRedirect(pending.request, "access_denied"), 302);
 			}
 
-			const deps = c.get("deps");
-			const user = await deps.verifier.signIn(String(form.get("email") ?? ""), String(form.get("password") ?? ""));
-			if (!user || !deps.adminEmails.includes(user.email.toLowerCase())) {
+			const services = c.get("services");
+			const user = await services.verifier.signIn(String(form.get("email") ?? ""), String(form.get("password") ?? ""));
+			if (!user || !services.adminEmails.includes(user.email.toLowerCase())) {
 				pending.failures += 1;
 				if (pending.failures >= MAX_FAILURES) {
 					await kv.delete(key);

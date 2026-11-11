@@ -1,6 +1,7 @@
 import type { CreatedApiKey } from "@portfolio/shared";
 import { describe, expect, it } from "vitest";
-import { ADMIN, data, flush, setup } from "./helpers";
+import { verifyApiKey } from "../src/domain/api-keys";
+import { ADMIN, data, flush, items, setup } from "./helpers";
 
 async function createKey(call: ReturnType<typeof setup>["call"], scope: "read" | "write") {
 	const response = await call("/admin/api-keys", {
@@ -41,15 +42,15 @@ const INIT = {
 
 describe("API keys", () => {
 	it("are shown once and stored only as a hash", async () => {
-		const { call, deps } = setup();
+		const { call, cache } = setup();
 		const { key, apiKey } = await createKey(call, "write");
 		expect(key).toMatch(/^pk_[A-Za-z0-9_-]{43}$/);
 		expect(key.startsWith(apiKey.prefix)).toBe(true);
 
-		const listed = await data<Record<string, unknown>[]>(await call("/admin/api-keys", { token: ADMIN }));
+		const listed = await items<Record<string, unknown>>(await call("/admin/api-keys", { token: ADMIN }));
 		expect(listed).toHaveLength(1);
 		expect(JSON.stringify(listed)).not.toContain(key);
-		expect(await deps.apiKeys.verify(key)).toMatchObject({ id: apiKey.id });
+		expect(await verifyApiKey(cache, key)).toMatchObject({ id: apiKey.id });
 	});
 
 	it("authenticate the admin API, and read-only keys cannot write", async () => {
@@ -155,7 +156,8 @@ describe("MCP server", () => {
 
 		const invalid = await callTool("create_entry", { collection: "links", data: { label: "" } });
 		expect(invalid.isError).toBe(true);
-		expect(invalid.value).toContain("Invalid data");
+		expect(invalid.value).toContain("Invalid UseCase input");
+		expect(invalid.value).toContain("label");
 
 		await callTool("delete_entry", { collection: "links", id: created.value.id });
 		await flush();

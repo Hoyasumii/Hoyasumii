@@ -1,11 +1,10 @@
+import { Forbidden, Unauthenticated } from "@afora/core";
+import type { Authenticator } from "@afora/core/adapters";
 import type { Context } from "hono";
-import { createMiddleware } from "hono/factory";
 import type { AppEnv } from "../app";
-import type { Deps } from "../container";
-import { AdminService } from "../services/admin";
-import { isApiKey } from "../services/api-keys";
+import { isApiKey, verifyApiKey } from "../domain/api-keys";
+import type { Adapters, Background, Services } from "../domain/services";
 import { describePrincipal, type Principal } from "../services/auth";
-import { forbidden, HttpError, unauthorized } from "./errors";
 
 /** Runs work after the response is sent when possible. */
 export function inBackground(c: Context<AppEnv>, work: Promise<unknown>) {
@@ -16,55 +15,84 @@ export function inBackground(c: Context<AppEnv>, work: Promise<unknown>) {
 	}
 }
 
-function bearer(c: Context<AppEnv>): string {
-	const header = c.req.header("Authorization") ?? "";
-	return header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
+export function bearer(header: string | undefined): string {
+	return header?.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
+}
+
+/** A valid panel session whose email is not in ADMIN_EMAILS. */
+export class NotAnAdmin extends Error {
+	constructor() {
+		super("This account cannot edit the site");
+	}
 }
 
 /**
  * Resolves a bearer token (an API key `pk_…` or a panel session) to its principal, or null when
- * it is not valid. Throws `forbidden` for a valid session outside ADMIN_EMAILS.
+ * it is not valid. Throws NotAnAdmin for a valid session outside ADMIN_EMAILS.
  */
 export async function authenticateToken(
-	deps: Deps,
+	adapters: Adapters,
 	token: string,
-	background?: (work: Promise<unknown>) => void,
+	background?: Background,
 ): Promise<Principal | null> {
 	if (isApiKey(token)) {
-		const key = await deps.apiKeys.verify(token, background);
+		const key = await verifyApiKey(adapters.cache, token, background);
 		return key ? { via: "api-key", id: key.id, name: key.name, scope: key.scope } : null;
 	}
 
-	const user = await deps.verifier.verify(token);
+	const user = await adapters.verifier.verify(token);
 	if (!user) return null;
-	if (!deps.adminEmails.includes(user.email.toLowerCase())) throw forbidden();
+	if (!adapters.adminEmails.includes(user.email.toLowerCase())) throw new NotAnAdmin();
 	return { ...user, via: "session", scope: "write" };
 }
 
-/** Resolves the caller from a panel session token or an API key (`pk_…`). */
-export async function authenticate(c: Context<AppEnv>): Promise<Principal> {
-	const token = bearer(c);
-	if (!token) throw unauthorized();
-	const principal = await authenticateToken(c.get("deps"), token, (work) => inBackground(c, work));
-	if (!principal) throw unauthorized(isApiKey(token) ? "Invalid or revoked API key" : undefined);
-	return principal;
+/**
+ * The principal afora checks `access` against: `admin:read` for everyone, `admin:write` for
+ * sessions and write keys, `session` only for the owner's session. Its claims fill the context of
+ * admin operations (see domain/services.ts).
+ */
+export function aforaPrincipal(principal: Principal) {
+	const scopes = ["admin:read"];
+	if (principal.scope === "write") scopes.push("admin:write");
+	if (principal.via === "session") scopes.push("session");
+	return {
+		subject: principal.id,
+		scopes,
+		claims: {
+			via: principal.via,
+			scope: principal.scope,
+			actor: describePrincipal(principal),
+			...(principal.via === "session" ? { email: principal.email } : { name: principal.name }),
+		},
+	};
 }
 
-/** Admin endpoints: anyone with a session or an API key; read-only keys may only read. */
-export const requireAdmin = createMiddleware<AppEnv>(async (c, next) => {
-	const principal = await authenticate(c);
-	if (principal.scope !== "write" && !["GET", "HEAD", "OPTIONS"].includes(c.req.method)) {
-		throw new HttpError(403, "read_only_key", "This API key can only read");
+/** The `authenticator` of the hono sink: who calls, from `Authorization: Bearer …`. */
+export const authenticator: Authenticator = async (request) => {
+	const c = request.native as Context<AppEnv>;
+	const token = bearer(request.header("authorization"));
+	if (!token) return null;
+	const services = c.get("services");
+	try {
+		const principal = await authenticateToken(services, token, services.background);
+		if (!principal) {
+			throw new Unauthenticated({
+				source: "authenticator",
+				message: isApiKey(token) ? "Invalid or revoked API key" : "Missing or invalid token",
+			});
+		}
+		return aforaPrincipal(principal);
+	} catch (error) {
+		if (error instanceof NotAnAdmin) {
+			throw new Forbidden({ source: "authenticator", message: error.message, details: { reason: "scope" } as never });
+		}
+		throw error;
 	}
-	c.set("user", principal);
-	c.set("admin", new AdminService(c.get("deps"), (work) => inBackground(c, work), describePrincipal(principal)));
-	await next();
-});
+};
 
-/** Managing API keys needs the owner's session: a leaked key must not be able to mint others. */
-export const requireSession = createMiddleware<AppEnv>(async (c, next) => {
-	if (c.get("user")?.via !== "session") {
-		throw new HttpError(403, "session_required", "API keys can only be managed from the admin panel");
-	}
-	await next();
-});
+/** For the routes outside the output (/mcp, /admin/media): the caller, or null when unauthenticated. */
+export async function authenticate(c: Context<AppEnv>, services: Services): Promise<Principal | null> {
+	const token = bearer(c.req.header("Authorization"));
+	if (!token) return null;
+	return authenticateToken(services, token, services.background);
+}

@@ -19,9 +19,20 @@ import type {
 	SettingsKey,
 } from "./schema";
 
-export type ApiErrorBody = {
-	error: { code: string; message: string; issues?: unknown };
+/** An error response of the API: RFC 9457 problem details (`application/problem+json`). */
+export type ApiProblem = {
+	type: string;
+	/** The name of the error, e.g. "InvalidUseCaseInput" or "EntryNotFound". */
+	title: string;
+	status: number;
+	detail?: string;
+	layer?: string;
+	/** Invalid input (400): where each problem is and what to fix. */
+	issues?: { path: (string | number)[]; code: string; message: string }[];
 };
+
+/** Strips the property name afora puts before a custom message, which the panel already shows. */
+const issueMessage = (message: string) => message.replace(/^Invalid value for property "[^"]*": /, "");
 
 export class ApiError extends Error {
 	constructor(
@@ -60,19 +71,23 @@ export function createPortfolioClient({ baseUrl, getToken, fetch: fetcher = fetc
 		}
 
 		const response = await fetcher(`${root}${path}`, { ...init, ...options, headers });
-		const body = (await response.json().catch(() => null)) as { data: T } | ApiErrorBody | null;
+		const body = (await response.json().catch(() => null)) as unknown;
 
-		if (!response.ok || !body || "error" in body) {
-			const error = body && "error" in body ? body.error : undefined;
+		if (!response.ok) {
+			const problem = (body ?? {}) as Partial<ApiProblem>;
 			throw new ApiError(
 				response.status,
-				error?.code ?? "http_error",
-				error?.message ?? response.statusText,
-				error?.issues,
+				problem.title ?? "http_error",
+				problem.detail ?? response.statusText,
+				problem.issues?.map((issue) => ({ ...issue, message: issueMessage(issue.message) })),
 			);
 		}
-		return body.data;
+		return body as T;
 	}
+
+	/** Lists come wrapped as `{ items }`. */
+	const list = async <T>(path: string, options: RequestInit = {}, auth = false): Promise<T[]> =>
+		(await request<{ items: T[] }>(path, options, auth)).items;
 
 	const json = (method: string, value: unknown): RequestInit => ({
 		method,
@@ -81,23 +96,25 @@ export function createPortfolioClient({ baseUrl, getToken, fetch: fetcher = fetc
 
 	return {
 		getContent: () => request<Content>("/content"),
-		getArticles: () => request<ArticleSummary[]>("/articles"),
+		getArticles: () => list<ArticleSummary>("/articles"),
 		getArticle: (slug: string) => request<Article>(`/articles/${encodeURIComponent(slug)}`),
 		/** Published release notes, newest first. */
-		getReleases: () => request<Release[]>("/releases"),
+		getReleases: () => list<Release>("/releases"),
 
 		getPushKey: () => request<PushKey>("/push/key"),
 		subscribePush: (subscription: PushSubscriptionInput) =>
 			request<{ subscribed: true }>("/push/subscriptions", json("POST", subscription)),
 		unsubscribePush: (endpoint: string) =>
-			request<{ subscribed: false }>("/push/subscriptions", json("DELETE", { endpoint })),
+			request<{ subscribed: false }>(`/push/subscriptions?endpoint=${encodeURIComponent(endpoint)}`, {
+				method: "DELETE",
+			}),
 
 		getSettings: <K extends SettingsKey>(key: K) => request<Settings[K]>(`/admin/settings/${key}`, {}, true),
 		updateSettings: <K extends SettingsKey>(key: K, value: Settings[K]) =>
 			request<Settings[K]>(`/admin/settings/${key}`, json("PUT", value), true),
 
 		list: <N extends CollectionName>(name: N) =>
-			request<Entry<CollectionInput<N>>[]>(`/admin/collections/${name}`, {}, true),
+			list<Entry<CollectionInput<N>>>(`/admin/collections/${name}`, {}, true),
 		create: <N extends CollectionName>(name: N, input: CollectionInput<N>) =>
 			request<Entry<CollectionInput<N>>>(`/admin/collections/${name}`, json("POST", input), true),
 		update: <N extends CollectionName>(name: N, id: string, input: CollectionInput<N>) =>
@@ -109,16 +126,16 @@ export function createPortfolioClient({ baseUrl, getToken, fetch: fetcher = fetc
 		remove: <N extends CollectionName>(name: N, id: string) =>
 			request<{ id: string }>(`/admin/collections/${name}/${encodeURIComponent(id)}`, { method: "DELETE" }, true),
 		reorder: <N extends CollectionName>(name: N, ids: string[]) =>
-			request<Entry<CollectionInput<N>>[]>(`/admin/collections/${name}/order`, json("PUT", { ids }), true),
+			list<Entry<CollectionInput<N>>>(`/admin/collections/${name}/order`, json("PUT", { ids }), true),
 
-		listApiKeys: () => request<ApiKey[]>("/admin/api-keys", {}, true),
+		listApiKeys: () => list<ApiKey>("/admin/api-keys", {}, true),
 		createApiKey: (input: ApiKeyCreate) => request<CreatedApiKey>("/admin/api-keys", json("POST", input), true),
 		revokeApiKey: (id: string) =>
 			request<ApiKey>(`/admin/api-keys/${encodeURIComponent(id)}`, { method: "DELETE" }, true),
 
 		getMcpServer: () => request<McpServer>("/admin/mcp", {}, true),
 
-		listConnections: () => request<OAuthConnection[]>("/admin/connections", {}, true),
+		listConnections: () => list<OAuthConnection>("/admin/connections", {}, true),
 		revokeConnection: (id: string) =>
 			request<{ id: string }>(`/admin/connections/${encodeURIComponent(id)}`, { method: "DELETE" }, true),
 
