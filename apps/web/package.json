@@ -10,7 +10,6 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@hoyasumii/skill-icons": "^26.10.3",
 		"@portfolio/shared": "workspace:*",
 		"@supabase/supabase-js": "^2.118.0",
 		"marked": "^18.1.1",
