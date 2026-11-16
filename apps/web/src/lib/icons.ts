@@ -1,7 +1,3 @@
-import { iconNames, isIconName, resolveIconName } from "@hoyasumii/skill-icons";
-
-export { iconNames, isIconName, resolveIconName };
-
 export const SKILL_ICONS_API = "https://skill-icons.alanreisanjo.workers.dev";
 
 /** Suggested tints, the same palette the Skill Icons builder offers. */

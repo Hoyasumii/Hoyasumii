@@ -1,8 +1,9 @@
 "use client";
 
 import type { Localized } from "@portfolio/shared";
-import { useId, useMemo, useRef, useState } from "react";
-import { iconNames, iconUrl, resolveIconName } from "@/lib/icons";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { type IconCatalog, loadIconCatalog, resolveIcon, searchIcons, unknownIcons } from "@/lib/icon-catalog";
+import { iconUrl } from "@/lib/icons";
 import { useAdmin } from "./context";
 
 type FieldProps = {
@@ -288,6 +289,19 @@ export function ChipsField({
 	);
 }
 
+/** The Skill Icons catalog: undefined while loading, null if the Worker couldn't be reached. */
+function useIconCatalog(): IconCatalog | null | undefined {
+	const [catalog, setCatalog] = useState<IconCatalog | null | undefined>(undefined);
+	useEffect(() => {
+		let active = true;
+		loadIconCatalog().then((loaded) => active && setCatalog(loaded));
+		return () => {
+			active = false;
+		};
+	}, []);
+	return catalog;
+}
+
 /** Picks Skill Icons by name, previewed with the site's icon style for the dark theme. */
 export function IconsField({
 	label,
@@ -301,16 +315,22 @@ export function IconsField({
 	look?: { variant: "light" | "dark"; tint?: string };
 }) {
 	const [query, setQuery] = useState("");
+	const catalog = useIconCatalog();
 	const suggestions = useMemo(() => {
-		const q = query.trim().toLowerCase();
-		if (!q) return [];
-		return iconNames
-			.filter((name) => name.includes(q) && !value.includes(name))
-			.sort((a, b) => Number(!a.startsWith(q)) - Number(!b.startsWith(q)) || a.length - b.length)
+		if (!catalog) return [];
+		const chosen = new Set(value.map((name) => resolveIcon(catalog, name)?.id ?? name));
+		return searchIcons(catalog, query, 12 + chosen.size)
+			.filter((icon) => !chosen.has(icon.id))
 			.slice(0, 12);
-	}, [query, value]);
+	}, [catalog, query, value]);
 
-	const unknown = value.filter((name) => !resolveIconName(name));
+	const unknown = catalog ? unknownIcons(catalog, value) : [];
+	const canonical = (name: string) => (catalog && resolveIcon(catalog, name)?.id) || name;
+
+	let hint = "Busque pelo nome do Skill Icons.";
+	if (catalog === undefined) hint = "Carregando a lista do Skill Icons…";
+	else if (catalog === null) hint = "Não deu para carregar a lista do Skill Icons. Digite o nome e tecle Enter.";
+	else if (unknown.length > 0) hint = `Ícones desconhecidos: ${unknown.join(", ")}`;
 
 	function add(name: string) {
 		onChange([...value, name]);
@@ -325,21 +345,13 @@ export function IconsField({
 	}
 
 	return (
-		<Field
-			label={label}
-			hint={unknown.length > 0 ? `Ícones desconhecidos: ${unknown.join(", ")}` : "Busque pelo nome do Skill Icons."}
-		>
+		<Field label={label} hint={hint}>
 			{(id) => (
 				<div className="icons-field">
 					<ul className="icons-field__list">
 						{value.map((name, index) => (
 							<li key={name} className="icons-field__item">
-								<img
-									src={iconUrl(resolveIconName(name) ?? name, look.variant, look.tint)}
-									alt=""
-									width={32}
-									height={32}
-								/>
+								<img src={iconUrl(canonical(name), look.variant, look.tint)} alt="" width={32} height={32} />
 								<span>{name}</span>
 								<span className="icons-field__actions">
 									<button
@@ -379,17 +391,27 @@ export function IconsField({
 							onKeyDown={(event) => {
 								if (event.key === "Enter") {
 									event.preventDefault();
-									if (suggestions[0]) add(suggestions[0]);
+									if (suggestions[0]) add(suggestions[0].id);
+									// Without the catalog, take the name as typed; the Worker resolves it.
+									else if (catalog === null && query.trim() && !value.includes(query.trim().toLowerCase()))
+										add(query.trim().toLowerCase());
 								}
 							}}
 						/>
 						{suggestions.length > 0 ? (
 							<ul className="icons-field__suggestions">
-								{suggestions.map((name) => (
-									<li key={name}>
-										<button type="button" onClick={() => add(name)}>
-											<img src={iconUrl(name, look.variant, look.tint)} alt="" width={24} height={24} loading="lazy" />
-											{name}
+								{suggestions.map((icon) => (
+									<li key={icon.id}>
+										<button type="button" onClick={() => add(icon.id)}>
+											<img
+												src={iconUrl(icon.id, look.variant, look.tint)}
+												alt=""
+												width={24}
+												height={24}
+												loading="lazy"
+											/>
+											{icon.name}
+											{icon.name.toLowerCase() !== icon.id ? <span className="icons-field__id">{icon.id}</span> : null}
 										</button>
 									</li>
 								))}

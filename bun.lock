@@ -35,7 +35,6 @@
       "name": "@portfolio/web",
       "version": "1.0.0",
       "dependencies": {
-        "@hoyasumii/skill-icons": "^26.10.3",
         "@portfolio/shared": "workspace:*",
         "@supabase/supabase-js": "^2.118.0",
         "marked": "^18.1.1",
@@ -171,8 +170,6 @@
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.28.2", "", { "os": "win32", "cpu": "x64" }, "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g=="],
 
     "@hono/node-server": ["@hono/node-server@2.1.5", "", { "peerDependencies": { "hono": "^4 || ^5.0.0-0" } }, "sha512-MgP/I06GdvsilDspMk/qmRzpk8LOUStP6jFAbSRi40W09DhoyUn+Mj7eyKICPqeYKybOjVFLVIAQzvu1bfIa7Q=="],
-
-    "@hoyasumii/skill-icons": ["@hoyasumii/skill-icons@26.10.3", "", { "peerDependencies": { "@angular/core": ">=17.1", "astro": ">=4", "react": ">=18", "solid-js": ">=1.8", "svelte": ">=5", "vue": ">=3.3" }, "optionalPeers": ["@angular/core", "astro", "react", "solid-js", "svelte", "vue"] }, "sha512-q1IoSCZSxissn2tFvcRp8SiDXQyRxqD21MNvExe0Fnv3ikfFjn/LE7ci7Xhg36F3j9wKylLgcK5I1NDdmufCig=="],
 
     "@img/colour": ["@img/colour@1.1.0", "", {}, "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ=="],
 
