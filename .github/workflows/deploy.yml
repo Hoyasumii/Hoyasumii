@@ -16,6 +16,10 @@ on:
         description: Also redeploy the API
         type: boolean
         default: false
+      database:
+        description: Also apply pending migrations
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -25,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       api: ${{ steps.filter.outputs.api == 'true' || inputs.api == true }}
-      db: ${{ steps.filter.outputs.db }}
+      db: ${{ steps.filter.outputs.db == 'true' || inputs.database == true }}
     steps:
       - uses: actions/checkout@v4
         if: github.event_name == 'push'
@@ -51,8 +55,9 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+      # --yes: the CLI asks before applying, and CI has no terminal to answer.
       - name: Apply migrations
-        run: supabase db push --db-url "$SUPABASE_DB_URL"
+        run: supabase db push --db-url "$SUPABASE_DB_URL" --yes
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
