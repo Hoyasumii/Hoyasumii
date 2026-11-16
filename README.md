@@ -22,7 +22,7 @@ Projects, experience and articles live on **[hoyasumii.dev](https://hoyasumii.de
 ## 🧠 Stack
 
 **Runtime & Backend**
-> ![TypeScript, Bun, Elysia, Node.js, NestJS, Express, Fastify, Hono, Prisma, Drizzle, Zod, SWC](https://skill-icons.alanreisanjo.workers.dev/icons?i=ts,bun,elysia,nodejs,nest,express,fastify,hono,prisma,drizzle,zod,swc&tint=ff6a3d)
+> ![TypeScript, Bun, Elysia, Node.js, NestJS, Express, Fastify, Hono, Prisma, Drizzle, Zod, SWC](https://skill-icons.alanreisanjo.workers.dev/icons?i=ts,bun,afora,elysia,nodejs,nest,express,fastify,hono,prisma,drizzle,zod,swc&tint=ff6a3d)
 
 **Frontend**
 > ![React, Next.js, Vue, Pinia, Vuetify, Tailwind, Sass, Redux, Zustand, Storybook, Lit, Vite, HTML, CSS, JavaScript, Figma](https://skill-icons.alanreisanjo.workers.dev/icons?i=react,next,vue,pinia,vuetify,tailwind,sass,redux,zustand,storybook,lit,vite,html,css,js,figma&tint=ff6a3d)
