@@ -29,7 +29,7 @@ type Selection = { mode: "none" } | { mode: "new" } | { mode: "edit"; id: string
 
 function strip<N extends CollectionName>(item: Item<N>): CollectionInput<N> {
 	const { id: _id, position: _position, ...input } = item;
-	return input as CollectionInput<N>;
+	return input as unknown as CollectionInput<N>;
 }
 
 /** A list of entries on the left and the selected one's form on the right. */

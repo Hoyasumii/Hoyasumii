@@ -10,6 +10,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"zod": "^4.6.7"
+		"@afora/core": "27.0.0-rc.2",
+		"typebox": "^1"
 	}
 }

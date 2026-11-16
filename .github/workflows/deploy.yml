@@ -158,6 +158,6 @@ jobs:
             elif [ "$status" -ge 300 ]; then
               exit 1
             fi
-            [ "$(jq '.data.waiting | length' response.json)" = "0" ] && exit 0
+            [ "$(jq '.waiting | length' response.json)" = "0" ] && exit 0
             sleep 30
           done

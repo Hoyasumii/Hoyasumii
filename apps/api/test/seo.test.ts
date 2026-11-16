@@ -4,9 +4,9 @@ import { ADMIN, data, setup } from "./helpers";
 
 describe("seo settings", () => {
 	it("fills the fields added later on documents saved before them", async () => {
-		const { call, repository } = setup();
+		const { call, putSettings } = setup();
 		const description = { pt: "Olá", en: "Hi" };
-		await repository.putSettings("seo", { title: "Site", description } as never);
+		await putSettings("seo", { title: "Site", description } as never);
 		const content = await data<Content>(await call("/content"));
 		expect(content.seo).toEqual({ title: "Site", description, favicon: "", image: "", keywords: [], twitter: "" });
 	});

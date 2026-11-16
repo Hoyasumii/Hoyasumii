@@ -1,7 +1,7 @@
 import type { CollectionInput, PushReport, PushStatus, Release } from "@portfolio/shared";
 import { describe, expect, it } from "vitest";
 import { base64url, generateVapidKeys } from "../src/push/web-push";
-import { ADMIN, data, setup } from "./helpers";
+import { ADMIN, data, items, setup } from "./helpers";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -77,9 +77,9 @@ describe("releases", () => {
 			json: release({ slug: "draft", published: false }),
 		});
 
-		const list = await data<Release[]>(await call("/releases"));
+		const list = await items<Release>(await call("/releases"));
 		expect(list.map((item) => item.slug)).toEqual(["newer", "older"]);
-		const articles = await data<{ source: string }[]>(await call("/articles"));
+		const articles = await items<{ source: string }>(await call("/articles"));
 		expect(articles.filter((article) => article.source === "site")).toEqual([]);
 		expect(await data(await call("/content"))).not.toHaveProperty("releases");
 	});
@@ -134,7 +134,7 @@ describe("push", () => {
 		await call("/push/subscriptions", { method: "POST", json: { ...subscription, locale: "en" } });
 		expect((await data<PushStatus>(await call("/admin/push", { token: ADMIN }))).subscribers).toBe(1);
 
-		await call("/push/subscriptions", { method: "DELETE", json: { endpoint: subscription.endpoint } });
+		await call(`/push/subscriptions?endpoint=${encodeURIComponent(subscription.endpoint)}`, { method: "DELETE" });
 		expect((await data<PushStatus>(await call("/admin/push", { token: ADMIN }))).subscribers).toBe(0);
 	});
 
@@ -247,6 +247,6 @@ describe("MCP", () => {
 			data: release({ title: "New thing", version: "", kind: "launch", project: id, slug: "new-thing" }),
 		});
 		expect(created.isError).toBeFalsy();
-		expect((await data<Release[]>(await call("/releases"))).map((item) => item.slug)).toEqual(["new-thing"]);
+		expect((await items<Release>(await call("/releases"))).map((item) => item.slug)).toEqual(["new-thing"]);
 	});
 });
