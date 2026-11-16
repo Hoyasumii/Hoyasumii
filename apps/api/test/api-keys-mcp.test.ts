@@ -42,7 +42,7 @@ const INIT = {
 
 describe("API keys", () => {
 	it("are shown once and stored only as a hash", async () => {
-		const { call, cache } = setup();
+		const { call, cache, run } = setup();
 		const { key, apiKey } = await createKey(call, "write");
 		expect(key).toMatch(/^pk_[A-Za-z0-9_-]{43}$/);
 		expect(key.startsWith(apiKey.prefix)).toBe(true);
@@ -50,7 +50,7 @@ describe("API keys", () => {
 		const listed = await items<Record<string, unknown>>(await call("/admin/api-keys", { token: ADMIN }));
 		expect(listed).toHaveLength(1);
 		expect(JSON.stringify(listed)).not.toContain(key);
-		expect(await verifyApiKey(cache, key)).toMatchObject({ id: apiKey.id });
+		expect(await run(() => verifyApiKey(cache, key))).toMatchObject({ id: apiKey.id });
 	});
 
 	it("authenticate the admin API, and read-only keys cannot write", async () => {

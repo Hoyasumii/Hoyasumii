@@ -78,9 +78,10 @@ export async function verifyApiKey(cache: Cache, key: string, background?: Backg
 	if (Date.now() - last > TOUCH_EVERY_MS) {
 		const now = new Date().toISOString();
 		const touched = { ...apiKey, lastUsedAt: now };
-		const work = ApiKeys.findById(apiKey.id)
-			.then((stored) => stored && ApiKeys.update(stored.change.lastUsedAt(now)))
-			.then(() => cache.set(cacheKey(hash), touched, VERIFY_TTL_SECONDS))
+		// Writes last_used_at alone, and only while the key is active: a revocation that lands in
+		// between stays (and its cache entry, already dropped, is not put back).
+		const work = ApiKeys.touch(apiKey.id, now)
+			.then((active) => (active ? cache.set(cacheKey(hash), touched, VERIFY_TTL_SECONDS) : undefined))
 			.catch((error) => console.error("could not record API key usage", error));
 		background?.(work);
 	}

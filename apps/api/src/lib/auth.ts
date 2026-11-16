@@ -5,6 +5,7 @@ import type { AppEnv } from "../app";
 import { isApiKey, verifyApiKey } from "../domain/api-keys";
 import type { Adapters, Background, Services } from "../domain/services";
 import { describePrincipal, type Principal } from "../services/auth";
+import { problem } from "./problem";
 
 /** Runs work after the response is sent when possible. */
 export function inBackground(c: Context<AppEnv>, work: Promise<unknown>) {
@@ -90,9 +91,17 @@ export const authenticator: Authenticator = async (request) => {
 	}
 };
 
-/** For the routes outside the output (/mcp, /admin/media): the caller, or null when unauthenticated. */
-export async function authenticate(c: Context<AppEnv>, services: Services): Promise<Principal | null> {
+/**
+ * For the routes outside the output (/mcp, /admin/media): the caller, null when unauthenticated, or
+ * the 403 response to send for a valid session outside ADMIN_EMAILS.
+ */
+export async function authenticate(c: Context<AppEnv>, services: Services): Promise<Principal | null | Response> {
 	const token = bearer(c.req.header("Authorization"));
 	if (!token) return null;
-	return authenticateToken(services, token, services.background);
+	try {
+		return await authenticateToken(services, token, services.background);
+	} catch (error) {
+		if (error instanceof NotAnAdmin) return problem(c, 403, "Forbidden", error.message);
+		throw error;
+	}
 }

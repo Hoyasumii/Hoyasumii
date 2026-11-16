@@ -18,5 +18,7 @@ if (!url || !key) {
 	process.exit(1);
 }
 
-store.use(new SupabaseProvider(createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })));
-for (const line of await seedDefaults()) console.log(line);
+const provider = new SupabaseProvider(
+	createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } }),
+);
+for (const line of await store.run(provider, () => seedDefaults())) console.log(line);

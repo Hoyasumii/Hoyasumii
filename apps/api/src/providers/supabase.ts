@@ -1,6 +1,7 @@
 import { RepositoryEntityNotFound, RepositoryUniqueViolation, recordNameOf } from "@afora/core";
 import type { IRepositoryProvider, ProviderQuery, RepositoryContext, RepositoryData } from "@afora/core/adapters";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PartialWrites } from "../domain/repositories";
 
 type Row = Record<string, unknown>;
 
@@ -176,11 +177,20 @@ function sortRows(rows: RepositoryData[], orderBy: readonly { key: string; direc
 const PAGE = 1000;
 
 /**
+ * Postgres could not read a filter value as its column's type (`invalid_text_representation`), like
+ * `abc` for a uuid id: no row can hold it, so nothing matches.
+ */
+const UNMATCHABLE = "22P02";
+const unmatchable = (error: SupabaseError | null) => error?.code === UNMATCHABLE;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
  * An afora repository provider on Supabase (PostgREST through supabase-js), over the tables the
  * site already has: no table is created or changed. Queries support equality, `in`, ordering,
  * limit and offset. PostgREST has no interactive transactions, so neither does this provider.
  */
-export class SupabaseProvider implements IRepositoryProvider {
+export class SupabaseProvider implements IRepositoryProvider, PartialWrites {
 	readonly capabilities = { transactions: false } as const;
 
 	/**
@@ -252,6 +262,7 @@ export class SupabaseProvider implements IRepositoryProvider {
 			request = request.order(mapping.column("id"), { ascending: true });
 			const size = Math.min(PAGE, wanted - rows.length);
 			const { data, error } = await request.range(offset, offset + size - 1);
+			if (unmatchable(error)) return [];
 			if (error) this.fail(`read ${context.name}`, error);
 			rows.push(...(data as Row[]));
 			if ((data as Row[]).length < size) break;
@@ -272,6 +283,7 @@ export class SupabaseProvider implements IRepositoryProvider {
 			this.client.from(mapping.table).select("*", { count: "exact", head: true }),
 			query,
 		);
+		if (unmatchable(error)) return 0;
 		if (error) this.fail(`count ${context.name}`, error);
 		return count ?? 0;
 	}
@@ -283,8 +295,8 @@ export class SupabaseProvider implements IRepositoryProvider {
 	private async assertUnique(context: RepositoryContext, data: RepositoryData) {
 		for (const key of context.unique) {
 			if (key === "id" || data[key] === undefined || data[key] === null) continue;
-			const [other] = await this.findMany(context, { where: { [key]: data[key] }, limit: 2, withDeleted: true });
-			if (other && other.id !== data.id) {
+			const holders = await this.findMany(context, { where: { [key]: data[key] }, limit: 2, withDeleted: true });
+			if (holders.some((holder) => holder.id !== data.id)) {
 				throw new RepositoryUniqueViolation({ source: context.name, details: { key } });
 			}
 		}
@@ -310,7 +322,7 @@ export class SupabaseProvider implements IRepositoryProvider {
 			this.client.from(mapping.table).update(row).eq(idColumn, data.id),
 			{ withDeleted: true },
 		).select(idColumn);
-		if (error) this.writeFailed(context, "update", error);
+		if (error && !unmatchable(error)) this.writeFailed(context, "update", error);
 		if ((updated ?? []).length === 0) {
 			throw new RepositoryEntityNotFound({ source: context.name, details: { id: String(data.id) } });
 		}
@@ -324,10 +336,48 @@ export class SupabaseProvider implements IRepositoryProvider {
 			this.client.from(mapping.table).delete().eq(idColumn, id),
 			{ withDeleted: true },
 		).select(idColumn);
-		if (error) this.fail(`delete from ${context.name}`, error);
+		if (error && !unmatchable(error)) this.fail(`delete from ${context.name}`, error);
 		if ((removed ?? []).length === 0) {
 			throw new RepositoryEntityNotFound({ source: context.name, details: { id } });
 		}
+	}
+
+	/**
+	 * One UPDATE of the columns of `fields` alone, on the row of `id` whose values match `where`.
+	 * Only keys stored in their own column can be patched (not those inside a JSON document).
+	 */
+	async patch(context: RepositoryContext, id: string, fields: RepositoryData, where: RepositoryData = {}) {
+		const mapping = this.mappingOf(context);
+		const row = Object.fromEntries(
+			Object.entries(fields).map(([key, value]) => {
+				const column = mapping.column(key);
+				if (column.includes("->")) throw new Error(`Supabase: "${key}" of ${context.name} is not a column`);
+				return [column, value ?? null];
+			}),
+		);
+		const idColumn = mapping.column("id");
+		const { data: patched, error } = await this.filtered(
+			mapping,
+			this.client.from(mapping.table).update(row).eq(idColumn, id),
+			{ where, withDeleted: true },
+		).select(idColumn);
+		if (unmatchable(error)) return false;
+		if (error) this.writeFailed(context, "update", error);
+		return (patched ?? []).length > 0;
+	}
+
+	/** The positions of a collection in `entries`, in one statement (`reorder_entries`). */
+	async reorder(context: RepositoryContext, ids: readonly string[]) {
+		const { table, scope } = this.mappingOf(context);
+		if (table !== "entries" || typeof scope?.collection !== "string") {
+			throw new Error(`Supabase: ${context.name} has no order`);
+		}
+		// An id that is not a uuid names no entry; leaving it out keeps the positions of the others.
+		const { error } = await this.client.rpc("reorder_entries", {
+			p_collection: scope.collection,
+			p_ids: ids.map((id) => (UUID.test(id) ? id : null)),
+		});
+		if (error) this.fail(`reorder ${context.name}`, error);
 	}
 
 	/** A unique index refused the row: a 409 for the key it guards (or the first unique key). */

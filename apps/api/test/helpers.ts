@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { createApp } from "../src/app";
 import { MemoryCache } from "../src/cache/memory";
-import { activate, memoryStore, pushConfig, type Runtime } from "../src/container";
+import { memoryStore, pushConfig, type Runtime, within } from "../src/container";
 import { SettingsDocument } from "../src/domain/entities";
 import { SettingsDocuments } from "../src/domain/repositories";
 import type { Adapters } from "../src/domain/services";
@@ -14,7 +14,15 @@ export const ADMIN = "admin-token";
 export const STRANGER = "stranger-token";
 
 /** A fresh API on a fresh in-memory store, seeded with the default content. */
-export function setup({ env = {}, fetcher }: { env?: Env; fetcher?: typeof fetch } = {}) {
+export function setup({
+	env = {},
+	fetcher,
+	store = memoryStore(),
+}: {
+	env?: Env;
+	fetcher?: typeof fetch;
+	store?: Pick<Runtime, "provider" | "prepare">;
+} = {}) {
 	const cache = new MemoryCache();
 	const publisher = new NoopPublisher();
 	const settings: Env = { ADMIN_EMAILS: "owner@example.com", ALLOWED_ORIGINS: "https://site.test", ...env };
@@ -32,8 +40,10 @@ export function setup({ env = {}, fetcher }: { env?: Env; fetcher?: typeof fetch
 		allowedOrigins: parseList(settings.ALLOWED_ORIGINS),
 		mode: { database: "memory", cache: "memory" },
 	};
-	const runtime: Runtime = { adapters, ...memoryStore() };
-	const app = createApp(() => activate(runtime));
+	const runtime: Runtime = { adapters, ...store };
+	const app = createApp(() => runtime);
+	/** Runs `work` outside a request, on this API's store (like the domain code a request runs). */
+	const run = <Result>(work: () => Promise<Result>) => within(runtime, work);
 
 	const call = (path: string, init: RequestInit & { token?: string; json?: unknown } = {}) => {
 		const headers = new Headers(init.headers);
@@ -47,15 +57,14 @@ export function setup({ env = {}, fetcher }: { env?: Env; fetcher?: typeof fetch
 	};
 
 	/** Stores a settings document as is, like one saved before its schema changed. */
-	const putSettings = async (key: string, value: unknown) => {
-		activate(runtime);
-		await runtime.prepare();
-		const current = await SettingsDocuments.findById(key);
-		if (current) await SettingsDocuments.update(current.change.value(value as never));
-		else await SettingsDocuments.create(new SettingsDocument({ id: key, value: value as never }));
-	};
+	const putSettings = (key: string, value: unknown) =>
+		run(async () => {
+			const current = await SettingsDocuments.findById(key);
+			if (current) await SettingsDocuments.update(current.change.value(value as never));
+			else await SettingsDocuments.create(new SettingsDocument({ id: key, value: value as never }));
+		});
 
-	return { app, adapters, runtime, cache, publisher, call, putSettings };
+	return { app, adapters, runtime, cache, publisher, call, run, putSettings };
 }
 
 /** The body of a successful response. */

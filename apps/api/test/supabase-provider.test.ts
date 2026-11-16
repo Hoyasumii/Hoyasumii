@@ -1,6 +1,8 @@
+import { RepositoryUniqueViolation, repositoryOf } from "@afora/core";
 import { providerContract } from "@afora/core/testing";
 import { createClient } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
+import { Article } from "../src/domain/entities";
 import { documentsMapping, entriesMapping, portfolioTables, SupabaseProvider } from "../src/providers/supabase";
 
 describe("Supabase table mappings", () => {
@@ -64,6 +66,37 @@ if (url && key) {
 		},
 		{ transactions: false, keyset: false, indexes: false, versioning: false, atomic: false, expiry: false },
 	);
+
+	describe("Supabase provider unique keys", () => {
+		it("refuses a value another row holds, even when the row being written comes first", async () => {
+			const entity = "unique-keys";
+			await client.from("afora_contract").delete().eq("entity", entity);
+			// Two rows already sharing a slug (as rows written before the rule would), "a" sorting first.
+			const { error } = await client.from("afora_contract").insert([
+				{ entity, id: "a", data: { slug: "same" } },
+				{ entity, id: "b", data: { slug: "same" } },
+			]);
+			if (error) throw new Error(error.message);
+
+			const provider = new SupabaseProvider(client, {}, () => documentsMapping("afora_contract", entity));
+			const articles = repositoryOf({ entity: Article, actions: ["update"], provider });
+			const article = new Article({
+				id: "a",
+				position: 0,
+				title: "A",
+				slug: "same",
+				lang: "pt",
+				excerpt: "",
+				body: "",
+				cover: "",
+				tags: [],
+				publishedAt: "2026-11-16",
+				published: false,
+			});
+			await expect(articles.update(article)).rejects.toBeInstanceOf(RepositoryUniqueViolation);
+			await client.from("afora_contract").delete().eq("entity", entity);
+		});
+	});
 } else {
 	describe.skip("Supabase provider contract (set SUPABASE_TEST_URL and SUPABASE_TEST_KEY)", () => {
 		it("runs against a local Supabase", () => {});

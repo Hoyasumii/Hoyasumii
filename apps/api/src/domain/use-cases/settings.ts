@@ -1,5 +1,6 @@
 import { blueprintOf, useCaseOf } from "@afora/core";
 import { parseSettings, type Settings, type SettingsKey, settingsKeys, settingsSchemas } from "@portfolio/shared";
+import { capitalize } from "../../lib/text";
 import { afterChange, getContent, storedSettings } from "../content";
 import { SettingsDocument } from "../entities";
 import { InvalidData } from "../exceptions";
@@ -28,13 +29,9 @@ export async function saveSettings<K extends SettingsKey>(
 	return parsed.value;
 }
 
-function capitalized(name: string) {
-	return name[0].toUpperCase() + name.slice(1);
-}
-
 /** `GET` and `PUT /admin/settings/<key>`, one pair per settings document. */
 function settingsUseCases<K extends SettingsKey>(key: K) {
-	const label = capitalized(key);
+	const label = capitalize(key);
 	const path = `/admin/settings/${key}`;
 	// biome-ignore lint/suspicious/noExplicitAny: the four documents share one generic implementation
 	const schema = settingsSchemas[key] as any as typeof settingsSchemas.profile;

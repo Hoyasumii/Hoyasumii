@@ -224,6 +224,12 @@ export function settingsIssues<K extends SettingsKey>(
  * Validates a settings document and fills the fields it left out with their defaults: `{ value }`,
  * or `{ issues }` with every problem.
  */
+/**
+ * The message of a validation issue without the property name afora puts before a custom message,
+ * which the panel and the MCP tools already show next to it (as its path).
+ */
+export const issueMessage = (message: string) => message.replace(/^Invalid value for property "[^"]*": /, "");
+
 export function parseSettings<K extends SettingsKey>(
 	key: K,
 	input: unknown,
@@ -234,7 +240,7 @@ export function parseSettings<K extends SettingsKey>(
 			issues: parsed.issues.map(({ path, code, message }) => ({
 				path: [...path],
 				code,
-				message: message.replace(/^Invalid value for property "[^"]*": /, ""),
+				message: issueMessage(message),
 			})),
 		};
 	}

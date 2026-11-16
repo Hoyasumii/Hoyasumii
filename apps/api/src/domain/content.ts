@@ -4,6 +4,7 @@ import {
 	type CollectionInput,
 	type CollectionName,
 	type Content,
+	collectionNames,
 	contentCollectionNames,
 	defaultSettings,
 	devtoUsername,
@@ -41,6 +42,7 @@ export type EntryRepository = {
 	create(entity: AnyEntity): Promise<AnyEntity>;
 	update(entity: AnyEntity): Promise<AnyEntity>;
 	delete(entity: AnyEntity): Promise<unknown>;
+	reorder(ids: readonly string[]): Promise<void>;
 };
 type EntityClass = new (value: Record<string, unknown>) => AnyEntity;
 
@@ -96,23 +98,36 @@ export async function storedSettings<K extends SettingsKey>(key: K): Promise<Set
  * Public content: served from the cache and rebuilt after any change.
  * ------------------------------------------------------------------------- */
 
+/**
+ * The latest entity of a collection the content leaves out (articles and releases have their own
+ * endpoints), only for its date: the newest by creation and by update, one row each, never the
+ * whole collection with its bodies.
+ */
+async function latestOf(name: CollectionName): Promise<AnyEntity[]> {
+	const newest = (key: "createdAt" | "updatedAt") =>
+		repositoryOf(name).findMany({ orderBy: [{ key, direction: "desc" }], limit: 1 });
+	return (await Promise.all([newest("createdAt"), newest("updatedAt")])).flat();
+}
+
 async function buildContent(): Promise<Content> {
-	const [documents, ...collections] = await Promise.all([
+	const [documents, shown, hidden] = await Promise.all([
 		SettingsDocuments.findMany(),
-		...(["projects", "experience", "stack", "links", "articles", "releases"] as const).map(
-			async (name) => [name, await listEntities(name)] as const,
+		Promise.all(contentCollectionNames.map(async (name) => [name, await listEntities(name)] as const)),
+		Promise.all(
+			collectionNames
+				.filter((name) => !(contentCollectionNames as CollectionName[]).includes(name))
+				.map((name) => latestOf(name)),
 		),
 	]);
 	const stored = new Map(documents.map((document) => [document.id, document.value]));
 	const settings = Object.fromEntries(
 		settingsKeys.map((key) => [key, stored.has(key) ? normalizeSettings(key, stored.get(key)) : defaultSettings[key]]),
 	);
-	const shown = collections.filter(([name]) => (contentCollectionNames as string[]).includes(name));
 
 	const content = {
 		...settings,
 		...Object.fromEntries(shown.map(([name, entities]) => [name, entities.map((entity) => entryOf(entity))])),
-		updatedAt: latestChange([...documents, ...collections.flatMap(([, entities]) => entities)]),
+		updatedAt: latestChange([...documents, ...shown.flatMap(([, entities]) => entities), ...hidden.flat()]),
 	} as Content;
 	content.projects = content.projects.filter((project) => project.published);
 	return content;

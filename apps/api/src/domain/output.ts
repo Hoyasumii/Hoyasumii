@@ -2,6 +2,7 @@ import { commandOf, outputOf } from "@afora/core";
 import { hono } from "@afora/hono";
 import type { Hono } from "hono";
 import { authenticator } from "../lib/auth";
+import { capitalize } from "../lib/text";
 import {
 	CreateApiKey,
 	GetMcpServer,
@@ -61,15 +62,15 @@ export const Settings = commandOf({
 	name: "Settings",
 	useCases: Object.fromEntries(
 		Object.entries(settingsOperations).flatMap(([key, { get, put }]) => [
-			[`get${key[0].toUpperCase()}${key.slice(1)}`, get],
-			[`put${key[0].toUpperCase()}${key.slice(1)}`, put],
+			[`get${capitalize(key)}`, get],
+			[`put${capitalize(key)}`, put],
 		]),
 	),
 });
 
 /** One command per collection: Projects.list, Projects.create… */
 export const Collections = Object.entries(collectionOperations).map(([name, useCases]) =>
-	commandOf({ name: `${name[0].toUpperCase()}${name.slice(1)}`, useCases }),
+	commandOf({ name: capitalize(name), useCases }),
 );
 
 /** Static headers of the public responses: the site and its visitors cache them. */

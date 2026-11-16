@@ -33,28 +33,39 @@ export const DEV_PASSWORD = "dev";
 
 /**
  * What runs the API: the adapters, and the provider the repositories write through. Every request
- * awaits `prepare()` (the seed of the in-memory store, once) before it reaches a use case.
+ * runs `within` it: with the repositories on its provider, once `prepare()` (the seed of the
+ * in-memory store, once) is done.
  */
 export type Runtime = { adapters: Adapters; provider: IRepositoryProvider; prepare: () => Promise<void> };
 
-/** Uses `runtime`: points the repositories at its provider. */
-export function activate(runtime: Runtime): Runtime {
-	store.use(runtime.provider);
-	return runtime;
+/** Runs `work` with the repositories on the store of `runtime`, once it is prepared. */
+export function within<Result>(runtime: Runtime, work: () => Promise<Result>): Promise<Result> {
+	return store.run(runtime.provider, async () => {
+		await runtime.prepare();
+		return work();
+	});
 }
 
 /**
  * An in-memory store with the default content, as `wrangler dev` without secrets and the tests use.
- * It is seeded on the first `prepare()`, once its provider is the one in use.
+ * It is seeded on the first `prepare()`; a seed that fails is tried again on the next one.
  */
-export function memoryStore(): Pick<Runtime, "provider" | "prepare"> {
-	const provider = inMemoryProvider();
+export function memoryStore(
+	seed: () => Promise<unknown> = () => seedDefaults({ keepIds: true }),
+	provider: IRepositoryProvider = inMemoryProvider(),
+) {
 	let seeded: Promise<void> | undefined;
 	const prepare = () => {
-		seeded ??= seedDefaults({ keepIds: true }).then(() => undefined);
+		seeded ??= store.run(provider, seed).then(
+			() => undefined,
+			(error: unknown) => {
+				seeded = undefined;
+				throw error;
+			},
+		);
 		return seeded;
 	};
-	return { provider, prepare };
+	return { provider, prepare } satisfies Pick<Runtime, "provider" | "prepare">;
 }
 
 let memory: ReturnType<typeof memoryStore> | undefined;
@@ -65,7 +76,7 @@ let cached: { env: Env; runtime: Runtime } | undefined;
  * it falls back to in-memory adapters, so `wrangler dev` works out of the box.
  */
 export function runtimeFromEnv(env: Env): Runtime {
-	if (cached?.env === env) return activate(cached.runtime);
+	if (cached?.env === env) return cached.runtime;
 
 	const hasSupabase = Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
 	const hasUpstash = Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN);
@@ -115,7 +126,7 @@ export function runtimeFromEnv(env: Env): Runtime {
 		mode: { database: hasSupabase ? "supabase" : "memory", cache: hasUpstash ? "upstash" : "memory" },
 	};
 
-	const runtime = activate({ adapters, provider, prepare });
+	const runtime: Runtime = { adapters, provider, prepare };
 	cached = { env, runtime };
 	return runtime;
 }

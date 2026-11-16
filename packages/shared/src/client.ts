@@ -1,22 +1,23 @@
-import type {
-	ApiKey,
-	ApiKeyCreate,
-	Article,
-	ArticleSummary,
-	CollectionInput,
-	CollectionName,
-	Content,
-	CreatedApiKey,
-	Entry,
-	McpServer,
-	OAuthConnection,
-	PushKey,
-	PushReport,
-	PushStatus,
-	PushSubscriptionInput,
-	Release,
-	Settings,
-	SettingsKey,
+import {
+	type ApiKey,
+	type ApiKeyCreate,
+	type Article,
+	type ArticleSummary,
+	type CollectionInput,
+	type CollectionName,
+	type Content,
+	type CreatedApiKey,
+	type Entry,
+	issueMessage,
+	type McpServer,
+	type OAuthConnection,
+	type PushKey,
+	type PushReport,
+	type PushStatus,
+	type PushSubscriptionInput,
+	type Release,
+	type Settings,
+	type SettingsKey,
 } from "./schema";
 
 /** An error response of the API: RFC 9457 problem details (`application/problem+json`). */
@@ -30,9 +31,6 @@ export type ApiProblem = {
 	/** Invalid input (400): where each problem is and what to fix. */
 	issues?: { path: (string | number)[]; code: string; message: string }[];
 };
-
-/** Strips the property name afora puts before a custom message, which the panel already shows. */
-const issueMessage = (message: string) => message.replace(/^Invalid value for property "[^"]*": /, "");
 
 export class ApiError extends Error {
 	constructor(

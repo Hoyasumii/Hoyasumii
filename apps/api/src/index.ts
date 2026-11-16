@@ -1,6 +1,6 @@
 import { OAuthProvider } from "@cloudflare/workers-oauth-provider";
 import { createApp } from "./app";
-import { runtimeFromEnv } from "./container";
+import { runtimeFromEnv, within } from "./container";
 import type { Env } from "./env";
 import { authenticateToken } from "./lib/auth";
 import { publicOrigin } from "./lib/public-url";
@@ -31,8 +31,7 @@ function providerFor(origin: string): OAuthProvider<Env> {
 		resolveExternalToken: async ({ token, env }) => {
 			// A session outside ADMIN_EMAILS throws forbidden: for the MCP client it is just an invalid token.
 			const runtime = runtimeFromEnv(env);
-			await runtime.prepare();
-			const principal = await authenticateToken(runtime.adapters, token).catch(() => null);
+			const principal = await within(runtime, () => authenticateToken(runtime.adapters, token)).catch(() => null);
 			return principal ? { props: { principal }, audience: resource } : null;
 		},
 	});

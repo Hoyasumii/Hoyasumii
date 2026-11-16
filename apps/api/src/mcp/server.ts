@@ -5,6 +5,7 @@ import {
 	type CollectionName,
 	collectionNames,
 	collectionSchemas,
+	issueMessage,
 	type SettingsKey,
 	settingsKeys,
 	settingsSchemas,
@@ -75,7 +76,7 @@ function issuesOf(error: Exception): unknown {
 		if (Array.isArray(issues)) {
 			return issues.map(({ path, message }: { path: unknown; message: string }) => ({
 				path,
-				message: message.replace(/^Invalid value for property "[^"]*": /, ""),
+				message: issueMessage(message),
 			}));
 		}
 	}

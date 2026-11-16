@@ -1,7 +1,7 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { type Context, Hono } from "hono";
 import { type AppEnv, problem } from "../app";
-import { authenticate, NotAnAdmin } from "../lib/auth";
+import { authenticate } from "../lib/auth";
 import { createMcpServer } from "../mcp/server";
 import type { Principal } from "../services/auth";
 
@@ -22,13 +22,8 @@ export const mcpRoutes = new Hono<AppEnv>().all("/", async (c) => {
 	const services = c.get("services");
 	// Behind OAuthProvider the token is already checked and the principal comes in ctx.props
 	// (an OAuth grant, an API key or a session). Without it (tests), authenticate here.
-	let principal = executionProps(c)?.principal;
-	try {
-		principal ??= (await authenticate(c, services)) ?? undefined;
-	} catch (error) {
-		if (error instanceof NotAnAdmin) return problem(c, 403, "Forbidden", error.message);
-		throw error;
-	}
+	const principal = executionProps(c)?.principal ?? (await authenticate(c, services));
+	if (principal instanceof Response) return principal;
 	if (!principal) {
 		// MCP clients look for WWW-Authenticate to tell a missing key from a server error.
 		c.header("WWW-Authenticate", 'Bearer realm="portfolio"');

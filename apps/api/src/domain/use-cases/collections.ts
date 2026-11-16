@@ -1,4 +1,4 @@
-import { blueprintOf, listOf, useCaseOf } from "@afora/core";
+import { blueprintOf, listOf, RepositoryUniqueViolation, useCaseOf } from "@afora/core";
 import {
 	type CollectionInput,
 	type CollectionName,
@@ -6,8 +6,8 @@ import {
 	collectionSchemas,
 	type Entry,
 	reorderSchema,
-	sluggedCollections,
 } from "@portfolio/shared";
+import { capitalize } from "../../lib/text";
 import { afterChange, entityClassOf, entryOf, findEntity, listEntities, listEntries, repositoryOf } from "../content";
 import { EntryNotFound, InvalidData, SlugTaken } from "../exceptions";
 import { entrySchemas, idResponse } from "../responses";
@@ -15,15 +15,20 @@ import { adminContext, adminRead, adminWrite } from "../services";
 
 type Value = Record<string, unknown>;
 
-/** Article and release slugs are their URLs, so two entries of one collection can't share one. */
-async function assertUniqueSlug(name: CollectionName, input: Value, id?: string) {
-	if (!sluggedCollections.includes(name)) return;
-	const slug = input.slug as string;
-	const taken = (await listEntries(name)).some(
-		(entry) => (entry as { slug?: string }).slug === slug && entry.id !== id,
-	);
-	if (taken) {
-		throw new SlugTaken({ source: name, details: { noun: name === "articles" ? "article" : "release", slug } });
+/**
+ * Runs the write of `input`. Article and release slugs are their URLs, so two entries of one
+ * collection can't share one: the entities declare the slug unique and the provider (backed by a
+ * unique index in Postgres) refuses a second one, which becomes a 409 here.
+ */
+async function writing<Result>(name: CollectionName, input: Value, write: () => Promise<Result>): Promise<Result> {
+	try {
+		return await write();
+	} catch (error) {
+		if (error instanceof RepositoryUniqueViolation && (error.details as { key?: string }).key === "slug") {
+			const noun = name === "articles" ? "article" : "release";
+			throw new SlugTaken({ source: name, details: { noun, slug: input.slug as string } });
+		}
+		throw error;
 	}
 }
 
@@ -47,16 +52,12 @@ async function assertProject(name: CollectionName, input: Value) {
 	}
 }
 
-function capitalized(name: string) {
-	return name[0].toUpperCase() + name.slice(1);
-}
-
 /**
  * The operations of one collection, served under `/admin/collections/<name>`: each with its own
  * input blueprint, so an entry is validated (and documented in the OpenAPI document) as what it is.
  */
 function collectionUseCases<N extends CollectionName>(name: N) {
-	const label = capitalized(name);
+	const label = capitalize(name);
 	const path = `/admin/collections/${name}`;
 	// biome-ignore lint/suspicious/noExplicitAny: the six collections share one generic implementation
 	const schema = collectionSchemas[name] as any as typeof collectionSchemas.projects;
@@ -106,17 +107,19 @@ function collectionUseCases<N extends CollectionName>(name: N) {
 	}) {
 		override async execute() {
 			const input = structuredClone(this.input) as Value;
-			await assertUniqueSlug(name, input);
 			await assertProject(name, input);
 			const [last] = await repository.findMany({ orderBy: [{ key: "position", direction: "desc" }], limit: 1 });
 			const position = last ? (last.toJSON().position as number) + 1 : 0;
-			const created = await repository.create(new Entity({ ...input, position }));
+			const created = await writing(name, input, () => repository.create(new Entity({ ...input, position })));
 			await afterChange(this.context.services, `${name} entry created`, this.context.actor);
 			return result(created);
 		}
 	}
 
-	/** Sets positions from the order of `ids`; ids that are not entries of this collection are ignored. */
+	/**
+	 * Sets each entry's position to its index in `ids`, in one write of the positions alone (an entry
+	 * edited meanwhile keeps its edit); ids that are not entries of this collection are ignored.
+	 */
 	class Reorder extends useCaseOf({
 		name: `Reorder${label}`,
 		route: { method: "put", path: `${path}/order` },
@@ -126,13 +129,7 @@ function collectionUseCases<N extends CollectionName>(name: N) {
 		context: adminContext,
 	}) {
 		override async execute() {
-			const entities = new Map((await listEntities(name)).map((entity) => [entity.id, entity]));
-			let position = 0;
-			for (const id of this.input.ids) {
-				const entity = entities.get(id) as { change: { position(value: number): unknown } } | undefined;
-				if (!entity) continue;
-				await repository.update(entity.change.position(position++) as never);
-			}
+			await repository.reorder(this.input.ids);
 			await afterChange(this.context.services, `${name} reordered`, this.context.actor);
 			return { items: (await listEntries(name)) as unknown as Entry<CollectionInput<"projects">>[] };
 		}
@@ -151,16 +148,17 @@ function collectionUseCases<N extends CollectionName>(name: N) {
 		override async execute() {
 			const { id, ...input } = structuredClone(this.input) as Value & { id: string };
 			const current = (await findEntity(name, id)).toJSON();
-			await assertUniqueSlug(name, input, id);
 			await assertProject(name, input);
-			const updated = await repository.update(
-				new Entity({
-					...input,
-					id,
-					position: current.position,
-					createdAt: current.createdAt,
-					updatedAt: new Date().toISOString(),
-				}),
+			const updated = await writing(name, input, () =>
+				repository.update(
+					new Entity({
+						...input,
+						id,
+						position: current.position,
+						createdAt: current.createdAt,
+						updatedAt: new Date().toISOString(),
+					}),
+				),
 			);
 			await afterChange(this.context.services, `${name} entry updated`, this.context.actor);
 			return result(updated);

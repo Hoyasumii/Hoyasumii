@@ -2,18 +2,13 @@ import { Exception } from "@afora/core";
 import { Hono } from "hono";
 import { type AppEnv, problem } from "../app";
 import { upload } from "../domain/media";
-import { authenticate, NotAnAdmin } from "../lib/auth";
+import { authenticate } from "../lib/auth";
 
 /** `POST /admin/media`: a multipart upload from the panel, by a caller who may write. */
 export const mediaRoutes = new Hono<AppEnv>().post("/", async (c) => {
 	const services = c.get("services");
-	let principal: Awaited<ReturnType<typeof authenticate>>;
-	try {
-		principal = await authenticate(c, services);
-	} catch (error) {
-		if (error instanceof NotAnAdmin) return problem(c, 403, "Forbidden", error.message);
-		throw error;
-	}
+	const principal = await authenticate(c, services);
+	if (principal instanceof Response) return principal;
 	if (!principal) return problem(c, 401, "Unauthenticated", "Missing or invalid token");
 	if (principal.scope !== "write") return problem(c, 403, "Forbidden", "This API key can only read");
 

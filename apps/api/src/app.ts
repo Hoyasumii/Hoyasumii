@@ -3,12 +3,13 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import type { Runtime } from "./container";
+import { type Runtime, within } from "./container";
 import { apiOutput } from "./domain/output";
 import { SettingsDocuments } from "./domain/repositories";
 import type { Services } from "./domain/services";
 import type { Env } from "./env";
 import { inBackground } from "./lib/auth";
+import { problem } from "./lib/problem";
 import { publicOrigin } from "./lib/public-url";
 import { mcpRoutes } from "./routes/mcp";
 import { mediaRoutes } from "./routes/media";
@@ -19,18 +20,8 @@ export type AppEnv = {
 	Variables: { services: Services };
 };
 
-/** An error outside the afora operations, in the same application/problem+json as theirs. */
-export function problem(
-	c: Context,
-	status: ContentfulStatusCode,
-	title: string,
-	detail: string,
-	extra: Record<string, unknown> = {},
-) {
-	return c.body(JSON.stringify({ type: `urn:afora:exception:${title}`, title, status, detail, ...extra }), status, {
-		"content-type": "application/problem+json",
-	});
-}
+/** Re-exported for the routes outside the output. */
+export { problem };
 
 type Check = { ok: true } | { ok: false; error: string };
 
@@ -49,15 +40,17 @@ export function createApp(resolveRuntime: (env: Env) => Runtime) {
 	app.use(secureHeaders({ xFrameOptions: "DENY" }));
 	app.use(async (c, next) => {
 		const env = c.env ?? {};
-		const { adapters, prepare } = resolveRuntime(env);
-		await prepare();
-		c.set("services", {
-			...adapters,
-			background: (work) => inBackground(c, work),
-			origin: publicOrigin(env, c.req.url),
-			oauth: env.OAUTH_PROVIDER,
+		const runtime = resolveRuntime(env);
+		// Everything this request runs, background work included, uses this runtime's store.
+		await within(runtime, async () => {
+			c.set("services", {
+				...runtime.adapters,
+				background: (work) => inBackground(c, work),
+				origin: publicOrigin(env, c.req.url),
+				oauth: env.OAUTH_PROVIDER,
+			});
+			await next();
 		});
-		await next();
 	});
 
 	const allowed = (origin: string, c: Context<AppEnv>) =>
