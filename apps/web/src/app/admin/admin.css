@@ -679,6 +679,12 @@ select.input {
 	color: var(--paper);
 }
 
+.icons-field__id {
+	margin-left: auto;
+	opacity: 0.55;
+	font-size: 0.85em;
+}
+
 .parts {
 	display: grid;
 	gap: 16px;
