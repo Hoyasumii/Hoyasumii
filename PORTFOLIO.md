@@ -30,7 +30,6 @@ supabase/        Migrations (Postgres, RLS, bucket de mídia)
 ## API
 
 O domínio da API é escrito com [@afora/core](https://www.npmjs.com/package/@afora/core) e servido pelo sink [@afora/hono](https://www.npmjs.com/package/@afora/hono):
-
 - **Contrato** (`packages/shared/src/schema.ts`): blueprints afora (Standard Schema), compartilhados pela API e pelo painel. Chaves não declaradas são recusadas.
 - **Entidades e repositórios** (`apps/api/src/domain/entities.ts`, `repositories.ts`): uma entidade por coleção, mais settings, chaves de API e assinaturas de push. Gravam por um provider próprio sobre o Supabase (`apps/api/src/providers/supabase.ts`), nas tabelas de sempre, ou em memória sem credenciais.
 - **Use cases** (`apps/api/src/domain/use-cases/`): cada rota declara `route` e `access` (`admin:read`, `admin:write` ou `session`). O MCP chama os mesmos use cases.

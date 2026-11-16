@@ -13,14 +13,14 @@
       "name": "@portfolio/api",
       "version": "1.0.0",
       "dependencies": {
-        "@afora/core": "0.0.11",
-        "@afora/hono": "0.0.11",
+        "@afora/core": "27.0.0-rc.2",
+        "@afora/hono": "27.0.0-rc.2",
         "@cloudflare/workers-oauth-provider": "1.2.3",
         "@modelcontextprotocol/sdk": "1.32.1",
         "@portfolio/shared": "workspace:*",
         "@supabase/supabase-js": "^2.118.0",
         "@upstash/redis": "^1.39.0",
-        "hono": "^4.13.13",
+        "hono": "^4.13.14",
         "typebox": "^1",
         "zod": "^4.6.7",
       },
@@ -63,15 +63,15 @@
       "name": "@portfolio/shared",
       "version": "1.0.0",
       "dependencies": {
-        "@afora/core": "0.0.11",
+        "@afora/core": "27.0.0-rc.2",
         "typebox": "^1",
       },
     },
   },
   "packages": {
-    "@afora/core": ["@afora/core@0.0.11", "", { "dependencies": { "slugify": "^1.6.9" }, "peerDependencies": { "typebox": "^1", "typescript": ">=5.5" }, "optionalPeers": ["typescript"] }, "sha512-iai+sf23tpZ98J7m0JzbFSO10fJPCHoZRR1jtRC8A/NTlR9ETY0d5drTTfZrEL1iORK5jC0yizvjckIatxH8hA=="],
+    "@afora/core": ["@afora/core@27.0.0-rc.2", "", { "dependencies": { "slugify": "^1.6.9" }, "peerDependencies": { "typebox": "^1", "typescript": ">=5.5" }, "optionalPeers": ["typescript"] }, "sha512-E+8X+5UFeJ3C+t4dmtBI40yEH6/XbJnnpLN8jC/a8F/2rOHYf4P6UCGy/mF/TE9F8cMajh4zgLDgaDszk2yp8Q=="],
 
-    "@afora/hono": ["@afora/hono@0.0.11", "", { "peerDependencies": { "@afora/core": ">=0.0.9", "hono": "^4.13.14", "typebox": "^1" } }, "sha512-VFKn6i5yYrXO3C+4SW/Gu/MQLAp0FOnedvIIjLLZjsOmBVSmqfbUu/hXV1NySv30n5zHGBw7NWw7oBsRXjIGLg=="],
+    "@afora/hono": ["@afora/hono@27.0.0-rc.2", "", { "peerDependencies": { "@afora/core": ">=27.0.0-rc.2", "hono": "^4.13.14", "typebox": "^1" } }, "sha512-MXBsKyDK48I/pwejWpqOxjrp5w3b93BF3DXJM68WTdSryTbLOUyFCDShrAX2thKU+M/6FvPVHmzlRq4CiJH+bg=="],
 
     "@biomejs/biome": ["@biomejs/biome@2.6.2", "", { "optionalDependencies": { "@biomejs/cli-android-arm64": "2.6.2", "@biomejs/cli-android-x64": "2.6.2", "@biomejs/cli-darwin-arm64": "2.6.2", "@biomejs/cli-darwin-x64": "2.6.2", "@biomejs/cli-linux-arm64": "2.6.2", "@biomejs/cli-linux-arm64-musl": "2.6.2", "@biomejs/cli-linux-x64": "2.6.2", "@biomejs/cli-linux-x64-musl": "2.6.2", "@biomejs/cli-win32-arm64": "2.6.2", "@biomejs/cli-win32-x64": "2.6.2" }, "bin": { "biome": "bin/biome" } }, "sha512-JLTFAFF9vfJcWwLhwuL4ZHflLg+XfTEC4IUnAlJRX1cMRt57++Xd1Ysb9Fdmlh9YUrvyCXfPEHjjEIqKJGdPKw=="],
 
@@ -483,7 +483,7 @@
 
     "hasown": ["hasown@2.0.4", "", { "dependencies": { "function-bind": "^1.1.2" } }, "sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A=="],
 
-    "hono": ["hono@4.13.13", "", {}, "sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA=="],
+    "hono": ["hono@4.13.19", "", {}, "sha512-KmXvQAXwcAHV+muzbIwoJ23niEB5nMoDVr9WcRkU8mvjUECm/1+7v4Jgp7P7a+H6MLFrh+vXrGonGrGS+RQfkA=="],
 
     "http-errors": ["http-errors@2.0.1", "", { "dependencies": { "depd": "~2.0.0", "inherits": "~2.0.4", "setprototypeof": "~1.2.0", "statuses": "~2.0.2", "toidentifier": "~1.0.1" } }, "sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ=="],
 

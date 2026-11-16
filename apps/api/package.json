@@ -12,14 +12,14 @@
 		"vapid": "bun scripts/vapid.ts"
 	},
 	"dependencies": {
-		"@afora/core": "0.0.11",
-		"@afora/hono": "0.0.11",
+		"@afora/core": "27.0.0-rc.2",
+		"@afora/hono": "27.0.0-rc.2",
 		"@cloudflare/workers-oauth-provider": "1.2.3",
 		"@modelcontextprotocol/sdk": "1.32.1",
 		"@portfolio/shared": "workspace:*",
 		"@supabase/supabase-js": "^2.118.0",
 		"@upstash/redis": "^1.39.0",
-		"hono": "^4.13.13",
+		"hono": "^4.13.14",
 		"typebox": "^1",
 		"zod": "^4.6.7"
 	},
